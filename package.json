@@ -1,7 +1,7 @@
 {
   "name": "@n42/cli",
-  "version": "0.1.32",
-  "description": "Node42 CLI – Command-line interface for eDelivery path discovery, diagnostics, and tooling",
+  "version": "0.1.33",
+  "description": "Node42 CLI – Command-line interface for Peppol eDelivery path discovery, diagnostics, and tooling",
   "keywords": [
     "node42"
   ],
