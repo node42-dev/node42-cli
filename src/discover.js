@@ -33,6 +33,29 @@ const DEFAULT_DISCOVERY_INPUT = {
 const discoveryInput = DEFAULT_DISCOVERY_INPUT;
 let docSelected = false;
 
+async function processSupportedDocuments(encodedDocs, environment, participantId, options) {
+  if (encodedDocs && !docSelected) {
+      const docs = JSON.parse(Buffer.from(encodedDocs, "base64").toString("utf8"))
+      .map(d => ({ ...d, label: buildDocLabel(d) }));
+
+    if (docs.length) {
+      console.log(`Discovery completed`);
+      console.log(`Found ${docs.length} supported document type(s)\n`);
+      
+      docSelected = await promptForDocument(docs);
+
+      if (docSelected.scheme) {
+        discoveryInput.document.scheme = docSelected.scheme;
+      }
+
+      if (docSelected.value) {
+        discoveryInput.document.value = docSelected.value;
+      }
+
+      runDiscovery(environment, participantId, options);
+    }
+  }
+}
 
 async function runDiscovery(environment, participantId, options) {
   const {
@@ -54,7 +77,7 @@ async function runDiscovery(environment, participantId, options) {
       output,
       format,
       forceHttps,
-      rejectUnauthorized: insecure,
+      insecure,
       fetchBusinessCard,
       reverseLookup,
       probeEndpoints
@@ -84,6 +107,17 @@ async function runDiscovery(environment, participantId, options) {
     process.exit(1);
   }
 
+  const refId = res.headers.get("X-Node42-RefId");  
+  const serviceUsage = res.headers.get("X-Node42-ServiceUsage");
+  const rateLimit = res.headers.get("X-Node42-RateLimit");
+  const encodedDocs = res.headers.get("X-Node42-Documents");
+
+  const userUsage = getUserUsage();
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  userUsage.serviceUsage.discovery[currentMonth] = serviceUsage;
+  
+  updateUserUsage(userUsage);
+ 
   if (output === "plantuml" && format === "svg") {
     const svg = await res.text();
     stopSpinner();
@@ -93,59 +127,44 @@ async function runDiscovery(environment, participantId, options) {
       process.exit(1);
     }
 
-    const refId = res.headers.get("X-Node42-RefId");  
-    const serviceUsage = res.headers.get("X-Node42-ServiceUsage");
-    const rateLimit = res.headers.get("X-Node42-RateLimit");
-
-    const userUsage = getUserUsage();
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    userUsage.serviceUsage.discovery[currentMonth] = serviceUsage;
-    
-    updateUserUsage(userUsage);
-
-    const encodedDocs = res.headers.get("X-Node42-Documents");
-    if (encodedDocs && !docSelected) {
-       const docs = JSON.parse(Buffer.from(encodedDocs, "base64").toString("utf8"))
-        .map(d => ({ ...d, label: buildDocLabel(d) }));
-
-      if (docs.length) {
-        console.log(`Discovery completed`);
-        console.log(`Found ${docs.length} supported document type(s)\n`);
-        
-        docSelected = await promptForDocument(docs);
-
-        if (docSelected.scheme) {
-          discoveryInput.document.scheme = docSelected.scheme;
-        }
-
-        if (docSelected.value) {
-          discoveryInput.document.value = docSelected.value;
-        }
-
-        runDiscovery(environment, participantId, options);
-      }
-    }
+    await processSupportedDocuments(encodedDocs, environment, participantId, options);
 
     const file = path.join(ARTEFACTS_DIR, `${refId}.svg`);
     fs.writeFileSync(file, svg);
 
     console.log(`Discovery completed`);
     console.log(`Usage    : ${serviceUsage} / ${rateLimit}`);
-    console.log(`Artifact : ${file}\n`);
-
-    stopSpinner();
+    console.log(`Artefact : ${file}\n`);
     return;
   }
 
-  if (output === "plantuml" && output === "text") {
+  if (output === "plantuml" && format === "text") {
     const text = await res.text();
-    console.log(text);
+    stopSpinner();
+
+    await processSupportedDocuments(encodedDocs, environment, participantId, options);
+
+    const file = path.join(ARTEFACTS_DIR, `${refId}.puml`);
+    fs.writeFileSync(file, text);
+
+    console.log(`Discovery completed`);
+    console.log(`Usage    : ${serviceUsage} / ${rateLimit}`);
+    console.log(`Artefact : ${file}\n`);
     return;
   }
 
   // default: json
   const json = await res.json();
-  console.log(JSON.stringify(json, null, 2));
+  stopSpinner();
+
+  await processSupportedDocuments(encodedDocs, environment, participantId, options);
+
+  const file = path.join(ARTEFACTS_DIR, `${refId}.json`);
+  fs.writeFileSync(file, JSON.stringify(json, null, 2));
+
+  console.log(`Discovery completed`);
+  console.log(`Usage    : ${serviceUsage} / ${rateLimit}`);
+  console.log(`Artefact : ${file}\n`);
 }
 
 module.exports = { runDiscovery };
