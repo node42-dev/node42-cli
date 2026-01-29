@@ -57,7 +57,7 @@ async function refreshSession() {
   }
 
   const payload = {
-      refreshToken,
+    token: refreshToken,
   };
 
   const res = await fetch(`${API_URL}/${EP_REFRESH}`, {
@@ -86,17 +86,14 @@ async function refreshSession() {
         idToken: data.idToken 
       })
     );
-    //console.log("Token refreshed");
   }
 
   return true;
 }
 
 async function fetchWithAuth(url, options = {}) {
-  const { accessToken } = loadAuth();
-  if (!accessToken) { // N42E-9032
-    //console.log("Token missing...");
-
+  let { accessToken } = loadAuth();
+  if (!accessToken) {
     handleError({ code: "N42E-9032" });
     return;
   }
@@ -115,9 +112,17 @@ async function fetchWithAuth(url, options = {}) {
 
   const refreshed = await refreshSession();
   if (!refreshed) { // N42E-9033
-    //console.log("Token expired...");
     return res;
   }
+
+  accessToken = loadAuth().accessToken;
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
 }
 
 module.exports = { loadAuth, checkAuth, fetchWithAuth };

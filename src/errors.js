@@ -1,4 +1,3 @@
-const { openOnce } = require("./browser");
 const { WWW_URL } = require("./config");
 
 
@@ -21,7 +20,6 @@ async function handleError(err) {
   } else {
     console.error(`See details: ${url}\n`);
   }
-  //await openOnce(url);
 }
 
 module.exports = { handleError };
