@@ -2,7 +2,7 @@
 const { Command } = require("commander");
 const { signin } = require("./signin");
 const { checkAuth } = require("./auth");
-const { getUserInfo } = require("./user");
+const { getUserInfo, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
 const { clearScreen, startSpinner, validateEnv, validateId} = require("./utils");
 
@@ -21,7 +21,7 @@ program
 
 program
   .command("me")
-  .description("returns identity and billing status for the authenticated user.")
+  .description("Returns identity and billing status for the authenticated user.")
   .action(() => {
     const stopSpinner = startSpinner();
     
@@ -32,6 +32,20 @@ program
     );
 
     stopSpinner();
+  });
+
+program
+  .command("usage <service>")
+  .description("Returns usage for the authenticated user.")
+  .action((service) => {
+    const userUsage = getUserUsage();
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    const usage =
+      userUsage?.serviceUsage?.[service]?.[currentMonth] ?? 0;
+
+    clearScreen(`Node42 CLI v${pkg.version}`);
+    console.log(`Usage for ${service} (${currentMonth}): ${usage}`);
   });
 
 const discover = program

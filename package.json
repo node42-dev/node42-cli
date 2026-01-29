@@ -1,6 +1,6 @@
 {
   "name": "@n42/cli",
-  "version": "0.1.39",
+  "version": "0.1.43",
   "description": "Node42 CLI – Command-line interface for Peppol eDelivery path discovery, diagnostics, and tooling",
   "keywords": [
     "node42"
@@ -19,6 +19,9 @@
   "scripts": {
     "lint": "eslint src",
     "test": "mocha"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "commander": "^11.1.0",
