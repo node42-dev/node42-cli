@@ -46,7 +46,7 @@ Authenticate once using your Node42 account credentials.\
 Tokens are stored locally under `~/.node42/`.
 
 ``` bash
-n42 signin
+n42 login
 ```
 
 Check authentication status:

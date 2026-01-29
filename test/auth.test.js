@@ -4,8 +4,8 @@ const { expect } = require("chai");
 
 
 describe("auth", () => {
-  describe("signin()", () => {
-    let signin;
+  describe("login()", () => {
+    let login;
     let utils;
     let auth;
     let user;
@@ -43,7 +43,7 @@ describe("auth", () => {
       });
 
       auth = require("../src/auth");
-      signin = auth.signin;
+      login = auth.login;
 
       sinon.stub(auth, "checkAuth").returns(true);
     });
@@ -64,7 +64,7 @@ describe("auth", () => {
         })
       });
 
-      await signin();
+      await login();
 
       expect(fs.mkdirSync.calledOnce).to.be.true;
       expect(fs.writeFileSync.calledOnce).to.be.true;
@@ -79,7 +79,7 @@ describe("auth", () => {
       });
 
       try {
-          await signin();
+          await login();
       } catch (e) {
           // expected
       }

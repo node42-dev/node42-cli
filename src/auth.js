@@ -1,19 +1,22 @@
 const fs = require("fs");
-const { NODE42_DIR, TOKENS_FILE, API_URL, EP_SIGNIN, EP_REFRESH } = require("./config");
+const { NODE42_DIR, TOKENS_FILE, API_URL, EP_LOGIN, EP_REFRESH } = require("./config");
 const { handleError } = require("./errors");
 const { updateUserInfo, getUserInfo, updateUserUsage } = require("./user");
 const { clearScreen, ask, startSpinner } = require("./utils");
 
 
-async function signin() {
+async function login() {
   clearScreen("Sign in to Node42");
+  let user = getUserInfo();
 
-  const username = await ask("Username: ");
-  const password = await ask("Password: ", true);
+  const username = await ask("Username", user.userMail ?? "");
+  const password = await ask("Password", null, true);
+
+  console.log(username + ", " + password);
 
   let stopSpinner = startSpinner();
 
-  const res = await fetch(`${API_URL}/${EP_SIGNIN}`, {
+  const res = await fetch(`${API_URL}/${EP_LOGIN}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
@@ -46,7 +49,8 @@ async function signin() {
   stopSpinner = startSpinner();
 
   checkAuth();
-  const user = getUserInfo();
+  user = getUserInfo();
+  
   console.log(
     `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
   );
@@ -56,7 +60,7 @@ async function signin() {
 
 function loadAuth() {
   if (!fs.existsSync(TOKENS_FILE)) {
-    console.error("Not logged in. Run: n42 signin");
+    console.error("Not logged in. Run: n42 login");
     process.exit(1);
   }
   return JSON.parse(fs.readFileSync(TOKENS_FILE, "utf8"));
@@ -176,4 +180,4 @@ async function fetchWithAuth(url, options = {}) {
   });
 }
 
-module.exports = { signin, loadAuth, checkAuth, fetchWithAuth };
+module.exports = { login, loadAuth, checkAuth, fetchWithAuth };

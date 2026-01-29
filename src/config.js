@@ -22,7 +22,7 @@ const config = {
   DEFAULT_OUTPUT: "json",
   DEFAULT_FORMAT: "svg",
 
-  EP_SIGNIN: "auth/signin",
+  EP_LOGIN: "auth/login",
   EP_REFRESH: "auth/refresh",
   EP_DISCOVER: "discover/peppol"
 };

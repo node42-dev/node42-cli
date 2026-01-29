@@ -9,13 +9,15 @@ function clearScreen(text) {
   }
 }
 
-function ask(question, hidden=false) {
+function ask(question, def, hidden=false) {
   return new Promise(resolve => {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
       terminal: true
     });
+
+    const q = def ? `${question} (${def}): ` : `${question}: `;
 
     process.stdin.on("data", char => {
       char = char + "";
@@ -29,16 +31,16 @@ function ask(question, hidden=false) {
           if (hidden) {
             process.stdout.clearLine(0);
             process.stdout.cursorTo(0);
-            process.stdout.write(question + "*".repeat(rl.line.length));
+            process.stdout.write(q + "*".repeat(rl.line.length));
           }
           break;
       }
     });
 
-    rl.question(question, answer => {
+    rl.question(q, answer => {
       rl.history = rl.history.slice(1);
       rl.close();
-      resolve(answer);
+      resolve(answer || def);
     });
   });
 }

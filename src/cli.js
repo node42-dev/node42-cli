@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const { Command } = require("commander");
-const { signin, checkAuth } = require("./auth");
+const { login, checkAuth } = require("./auth");
 const { getUserInfo, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
 const { clearScreen, startSpinner, validateEnv, validateId} = require("./utils");
@@ -38,9 +38,9 @@ program
   });
 
 program
-  .command("signin")
+  .command("login")
   .description("Authenticate using username and password and store tokens locally")
-  .action(signin);
+  .action(login);
 
 program
   .command("me")
