@@ -1,6 +1,7 @@
 const inquirer = require("inquirer");
 const readline = require("readline");
 
+
 function clearScreen(text) {
   process.stdout.write("\x1Bc");
   if (text) {

@@ -33,7 +33,7 @@ const DEFAULT_DISCOVERY_INPUT = {
 const discoveryInput = DEFAULT_DISCOVERY_INPUT;
 let docSelected = false;
 
-async function processSupportedDocuments(encodedDocs, environment, participantId, options) {
+async function processSupportedDocuments(encodedDocs, onDone) {
   if (encodedDocs && !docSelected) {
       const docs = JSON.parse(Buffer.from(encodedDocs, "base64").toString("utf8"))
       .map(d => ({ ...d, label: buildDocLabel(d) }));
@@ -52,7 +52,9 @@ async function processSupportedDocuments(encodedDocs, environment, participantId
         discoveryInput.document.value = docSelected.value;
       }
 
-      runDiscovery(environment, participantId, options);
+      if (typeof onDone === "function") {
+        await onDone(); // no args
+      }
     }
   }
 }
@@ -127,7 +129,9 @@ async function runDiscovery(environment, participantId, options) {
       process.exit(1);
     }
 
-    await processSupportedDocuments(encodedDocs, environment, participantId, options);
+    await processSupportedDocuments(encodedDocs, async () => {
+      await runDiscovery(environment, participantId, options);
+    });
 
     const file = path.join(ARTEFACTS_DIR, `${refId}.svg`);
     fs.writeFileSync(file, svg);
@@ -142,7 +146,9 @@ async function runDiscovery(environment, participantId, options) {
     const text = await res.text();
     stopSpinner();
 
-    await processSupportedDocuments(encodedDocs, environment, participantId, options);
+    await processSupportedDocuments(encodedDocs, async () => {
+      await runDiscovery(environment, participantId, options);
+    });
 
     const file = path.join(ARTEFACTS_DIR, `${refId}.puml`);
     fs.writeFileSync(file, text);
@@ -157,7 +163,9 @@ async function runDiscovery(environment, participantId, options) {
   const json = await res.json();
   stopSpinner();
 
-  await processSupportedDocuments(encodedDocs, environment, participantId, options);
+  await processSupportedDocuments(encodedDocs, async () => {
+    await runDiscovery(environment, participantId, options);
+  });
 
   const file = path.join(ARTEFACTS_DIR, `${refId}.json`);
   fs.writeFileSync(file, JSON.stringify(json, null, 2));
