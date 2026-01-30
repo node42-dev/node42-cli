@@ -36,7 +36,9 @@ describe("auth", () => {
         .onSecondCall().resolves("secret");
 
       sinon.stub(utils, "startSpinner").callsFake(() => () => {});
-      sinon.stub(user, "getUser").returns({
+      sinon.stub(user, "getUserWithIndex")
+      .withArgs(0)
+      .returns({
         id: "1",
         userName: "User",
         userMail: "user@test.com",

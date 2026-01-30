@@ -1,13 +1,28 @@
 const db = require("./db");
 
-function getUser() {
+function getUserWithIndex(index) {
   const users = db.get("user");
-  return users.length ? users[0] : {
+  return users.length ? users[index] : {
       "id": "n/a",
       "userName": "n/a",
       "userMail": "n/a",
       "role": "n/a"
     };
+}
+
+function getUserWithId(userId) {
+  const database = db.load();
+
+  const u = database.user.find(x => x.id === userId);
+  if (!u) {
+    return {
+      "id": "n/a",
+      "userName": "n/a",
+      "userMail": "n/a",
+      "role": "n/a"
+    }
+  }
+  return u;
 }
 
 function getUserUsage(userId, service, month) {
@@ -34,4 +49,4 @@ function setUserUsage(userId, service, month, value) {
   db.save(database);
 }
 
-module.exports = { getUser, getUserUsage, setUserUsage };
+module.exports = { getUserWithIndex, getUserWithId, getUserUsage, setUserUsage };

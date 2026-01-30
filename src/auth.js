@@ -1,14 +1,14 @@
 const fs = require("fs");
-const { NODE42_DIR, TOKENS_FILE, API_URL, EP_SIGNIN, EP_REFRESH } = require("./config");
+const { NODE42_DIR, TOKENS_FILE, API_URL, EP_SIGNIN, EP_REFRESH, EP_ME } = require("./config");
 const { handleError } = require("./errors");
-const { getUser } = require("./user");
+const { getUserWithIndex } = require("./user");
 const { clearScreen, ask, startSpinner } = require("./utils");
 const db = require("./db");
 
 
 async function login() {
   clearScreen("Sign in to Node42");
-  let user = getUser();
+  let user = getUserWithIndex(0);
 
   const username = await ask("Username", user.userMail ?? "");
   const password = await ask("Password", null, true);
@@ -54,7 +54,7 @@ async function login() {
     process.exit(1);
   }
 
-  user = getUser();
+  user = getUserWithIndex(0);
   console.log(
     `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
   );
@@ -81,7 +81,7 @@ async function checkAuth() {
     return false;
   }
 
-  const res = await fetchWithAuth(`${API_URL}/users/me`, {
+  const res = await fetchWithAuth(`${API_URL}/${EP_ME}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json"

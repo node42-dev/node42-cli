@@ -23,6 +23,7 @@ const config = {
 
   EP_SIGNIN: "auth/signin",
   EP_REFRESH: "auth/refresh",
+  EP_ME: "users/me",
   EP_DISCOVER: "discover/peppol"
 };
 

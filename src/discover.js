@@ -5,7 +5,7 @@ const db = require("./db");
 
 const { fetchWithAuth } = require("./auth");
 const { API_URL, EP_DISCOVER, DEFAULT_OUTPUT, DEFAULT_FORMAT, ARTEFACTS_DIR } = require("./config");
-const { getUser, setUserUsage } = require("./user");
+const { getUserWithIndex, setUserUsage } = require("./user");
 const { clearScreen, startSpinner, buildDocLabel, promptForDocument, getShortId, getArtefactExt } = require("./utils");
 const { handleError } = require("./errors"); 
 
@@ -117,7 +117,7 @@ async function runDiscovery(participantId, options) {
   const encodedDocs = res.headers.get("X-Node42-Documents");
   const currentMonth = new Date().toISOString().slice(0, 7);
  
-  const user = getUser();
+  const user = getUserWithIndex(0);
   setUserUsage(
     user.id,
     "discovery",

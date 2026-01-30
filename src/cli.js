@@ -2,7 +2,7 @@
 
 const { Command } = require("commander");
 const { login, logout, checkAuth } = require("./auth");
-const { getUser, getUserUsage } = require("./user");
+const { getUserWithIndex, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
 const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs, getArtefactExt, cleanAppDirs } = require("./utils");
 const { NODE42_DIR, ARTEFACTS_DIR, DEFAULT_OUTPUT, DEFAULT_FORMAT } = require("./config");
@@ -77,7 +77,7 @@ program
       process.exit(1);
     }
     
-    const user = getUser();
+    const user = getUserWithIndex(0);
     const currentMonth = new Date().toISOString().slice(0, 7);
     console.log(`Node42 CLI v${pkg.version}
     User
@@ -103,7 +103,7 @@ program
   .description("Returns usage for the authenticated user.")
   .option("-m, --month <yyyy-mm>", "Show usage for a specific month")
   .action((service, options) => {
-    const user = getUser();
+    const user = getUserWithIndex(0);
     const currentMonth = options.month ? options.month : new Date().toISOString().slice(0, 7);
     let usage = getUserUsage(user.id, service, currentMonth);
     if (!usage) {
@@ -172,8 +172,6 @@ program
     for (const item of artefacts) {
       const d = new Date(item.createdAt);
       const dt = d.toISOString().slice(0, 19).replace("T", " ");
-
-      const ext = getArtefactExt(item.output, item.format);
       const file = path.join(ARTEFACTS_DIR, `${item.file}`);
 
       let pid = item.participantId;
