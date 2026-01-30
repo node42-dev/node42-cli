@@ -11,13 +11,14 @@ routing, SMP resolution, and Access Point behavior.
 
 ## Features
 
--   Peppol eDelivery path discovery
--   SMP and Access Point resolution diagnostics
--   Supported document type detection
--   PlantUML and SVG visualizations
--   Authenticated API access
--   Deterministic, script-friendly output
--   No browser automation or UI side effects
+- Peppol eDelivery path discovery
+- SMP and Access Point resolution diagnostics
+- Supported document type detection
+- PlantUML and SVG visualizations
+- Authenticated API access
+- Deterministic, script-friendly output
+- No browser automation or UI side effects
+- Local artefact history inspection
 
 ## Installation
 
