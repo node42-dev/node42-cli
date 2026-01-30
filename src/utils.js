@@ -153,4 +153,14 @@ function buildDocLabel({ scheme, value }) {
   return docName;
 }
 
-module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, createAppDirs };
+function getArtefactExt(output, format) {
+  if (output === "plantuml" && format === "svg") {
+    return "svg";
+  } else if (output === "plantuml" && format === "text") {
+    return "puml"
+  } else {
+    return "json";
+  }
+}
+
+module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, createAppDirs, getArtefactExt };

@@ -100,7 +100,7 @@ async function checkAuth() {
   }
 
   const auth = await res.json();
-  console.log(auth);
+  //console.log(auth);
   if (auth) {  
 
     db.upsert("user", {
@@ -108,9 +108,12 @@ async function checkAuth() {
       userName: auth.userName,
       userMail: auth.userMail,
       role: auth.role,
+      rateLimits: auth.rateLimits,
+      serviceUsage: auth.serviceUsage,
     })
 
-    db.replace("usage", auth.serviceUsage);
+    db.replace("serviceUsage", auth.serviceUsage);
+    db.replace("rateLimits", auth.rateLimits);
     return true;
   }
 

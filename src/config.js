@@ -18,7 +18,7 @@ const config = {
   TOKENS_FILE: null,
   CONFIG_FILE: null,
 
-  DEFAULT_OUTPUT: "json",
+  DEFAULT_OUTPUT: "plantuml",
   DEFAULT_FORMAT: "svg",
 
   EP_SIGNIN: "auth/signin",
