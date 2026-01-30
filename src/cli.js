@@ -1,17 +1,20 @@
 #!/usr/bin/env node
+
 const { Command } = require("commander");
-const { login, checkAuth } = require("./auth");
-const { getUserInfo, getUserUsage } = require("./user");
+const { login, logout, checkAuth } = require("./auth");
+const { getUser, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
-const { clearScreen, startSpinner, validateEnv, validateId} = require("./utils");
-const { NODE42_DIR } = require("./config");
+const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs } = require("./utils");
+const { NODE42_DIR, ARTEFACTS_DIR } = require("./config");
+
+createAppDirs(); 
 
 const program = new Command();
 const pkg = require("../package.json");
+const db = require("./db");
 
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
 
 program
   .name("n42")
@@ -43,18 +46,24 @@ program
   .action(login);
 
 program
+  .command("logout")
+  .description("Terminate user session and delete all local tokens")
+  .action(logout);
+
+program
   .command("me")
   .description("Returns identity and billing status for the authenticated user.")
-  .action(() => {
+  .action(async () => {
     const stopSpinner = startSpinner();
     
-    checkAuth(); 
-    const user = getUserInfo();
+    await checkAuth(); 
+    const user = getUser();
+
+    stopSpinner();
+    
     console.log(
       `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
     );
-
-    stopSpinner();
   });
 
 program
@@ -69,6 +78,20 @@ program
 
     clearScreen(`Node42 CLI v${pkg.version}`);
     console.log(`Usage for ${service} (${currentMonth}): ${usage}`);
+  });
+
+program
+  .command("history <participantId>")
+  .description("Show local discovery history for a participant")
+  .action((participantId) => {
+    const artefacts = db.artefactsByParticipant(participantId);
+
+    for (const item of artefacts) {
+      const d = new Date(item.createdAt);
+      const dt = d.toISOString().slice(0,19).replace("T"," ");
+      const file = path.join(ARTEFACTS_DIR, `${item.id}.${item.format}`);
+      console.log(`${dt}: ${file}`);
+    }
   });
 
 const discover = program
@@ -87,11 +110,9 @@ discover
   .option("--reverse-lookup", "Enable reverse lookup", false)
   .option("--probe-endpoints", "Probe resolved endpoints", false)
   .action((participantId, options) => {
-    const environment = options.env;
-
     clearScreen(`Node42 CLI v${pkg.version}`);
     
-    try { validateEnv(environment); }
+    try { validateEnv(options.env); }
     catch (e) { 
       console.error(e.message);
       process.exit(1);
@@ -103,7 +124,7 @@ discover
       process.exit(1);
     }
 
-    runDiscovery(environment.toUpperCase(), participantId, options);
+    runDiscovery(participantId, options);
   });
 
 program.parse(process.argv);

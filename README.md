@@ -62,7 +62,7 @@ n42 me
 ### Basic discovery
 
 ``` bash
-n42 discover peppol <environment> <participantId>
+n42 discover peppol <participantId>
 ```
 
 ------------------------------------------------------------------------

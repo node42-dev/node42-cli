@@ -1,7 +1,11 @@
+const { expect } = require("chai");
 const sinon = require("sinon");
 const fs = require("fs");
-const { expect } = require("chai");
+const path = require("path");
+const os = require("os");
+const db = require("../src/db");
 
+const TEST_DB = path.join(os.tmpdir(), "test-db.json");
 
 describe("auth", () => {
   describe("login()", () => {
@@ -12,6 +16,9 @@ describe("auth", () => {
 
     beforeEach(() => {
       sinon.restore();
+
+      db.setSource(TEST_DB);
+      if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 
       // fresh require each test
       delete require.cache[require.resolve("../src/utils")];
@@ -27,7 +34,7 @@ describe("auth", () => {
         .onSecondCall().resolves("secret");
 
       sinon.stub(utils, "startSpinner").callsFake(() => () => {});
-      sinon.stub(user, "getUserInfo").returns({
+      sinon.stub(user, "getUser").returns({
         userName: "User",
         userMail: "user@test.com",
         role: "user"
@@ -66,8 +73,7 @@ describe("auth", () => {
 
       await login();
 
-      expect(fs.mkdirSync.calledOnce).to.be.true;
-      expect(fs.writeFileSync.calledOnce).to.be.true;
+      expect(fs.writeFileSync.called).to.be.true;
       expect(console.log.calledWithMatch("Authenticated as")).to.be.true;
     });
 

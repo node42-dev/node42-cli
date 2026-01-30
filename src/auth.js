@@ -1,13 +1,14 @@
 const fs = require("fs");
-const { NODE42_DIR, TOKENS_FILE, API_URL, EP_LOGIN, EP_REFRESH } = require("./config");
+const { NODE42_DIR, TOKENS_FILE, API_URL, EP_SIGNIN, EP_REFRESH } = require("./config");
 const { handleError } = require("./errors");
-const { updateUserInfo, getUserInfo, updateUserUsage } = require("./user");
+const { getUser } = require("./user");
 const { clearScreen, ask, startSpinner } = require("./utils");
+const db = require("./db");
 
 
 async function login() {
   clearScreen("Sign in to Node42");
-  let user = getUserInfo();
+  let user = getUser();
 
   const username = await ask("Username", user.userMail ?? "");
   const password = await ask("Password", null, true);
@@ -16,7 +17,7 @@ async function login() {
 
   let stopSpinner = startSpinner();
 
-  const res = await fetch(`${API_URL}/${EP_LOGIN}`, {
+  const res = await fetch(`${API_URL}/${EP_SIGNIN}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
@@ -48,14 +49,23 @@ async function login() {
   stopSpinner();
   stopSpinner = startSpinner();
 
-  checkAuth();
-  user = getUserInfo();
+  await checkAuth();
+  user = getUser();
   
   console.log(
     `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
   );
   
   stopSpinner();
+}
+
+function logout() {
+  if (fs.existsSync(TOKENS_FILE)) {
+    fs.unlinkSync(TOKENS_FILE);
+  }
+
+  let user = getUser();
+  db.delete("user", user.id);
 }
 
 function loadAuth() {
@@ -90,15 +100,17 @@ async function checkAuth() {
   }
 
   const auth = await res.json();
-  //console.log(auth);
+  console.log(auth);
   if (auth) {  
-    updateUserInfo({
+
+    db.upsert("user", {
+      id: auth.sub,
       userName: auth.userName,
       userMail: auth.userMail,
       role: auth.role,
-    });
+    })
 
-    updateUserUsage({ serviceUsage: auth.serviceUsage });
+    db.replace("usage", auth.serviceUsage);
     return true;
   }
 
@@ -180,4 +192,4 @@ async function fetchWithAuth(url, options = {}) {
   });
 }
 
-module.exports = { login, loadAuth, checkAuth, fetchWithAuth };
+module.exports = { login, logout, loadAuth, checkAuth, fetchWithAuth };

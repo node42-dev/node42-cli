@@ -1,10 +1,11 @@
 const fs = require("fs");
 const path = require("path");
 const pkg = require("../package.json");
+const db = require("./db");
 
 const { fetchWithAuth } = require("./auth");
 const { API_URL, EP_DISCOVER, DEFAULT_OUTPUT, DEFAULT_FORMAT, ARTEFACTS_DIR } = require("./config");
-const { getUserUsage, updateUserUsage } = require("./user");
+const { getUserUsage } = require("./user");
 const { clearScreen, startSpinner, buildDocLabel, promptForDocument } = require("./utils");
 const { handleError } = require("./errors"); 
 
@@ -59,8 +60,9 @@ async function processSupportedDocuments(encodedDocs, onDone) {
   }
 }
 
-async function runDiscovery(environment, participantId, options) {
+async function runDiscovery(participantId, options) {
   const {
+    env,
     output = DEFAULT_OUTPUT,
     format = DEFAULT_FORMAT,
     forceHttps,
@@ -74,7 +76,7 @@ async function runDiscovery(environment, participantId, options) {
 
   const payload = {
     ...discoveryInput,
-    env: environment,
+    env,
     options: {
       output,
       format,
@@ -118,7 +120,16 @@ async function runDiscovery(environment, participantId, options) {
   const currentMonth = new Date().toISOString().slice(0, 7);
   userUsage.serviceUsage.discovery[currentMonth] = serviceUsage;
   
-  updateUserUsage(userUsage);
+  db.replace("usage", userUsage);
+
+  db.insert("artefacts", {
+    id: refId,
+    participantId,
+    options,
+    output,
+    format,
+    createdAt: Date().now
+  });
  
   if (output === "plantuml" && format === "svg") {
     const svg = await res.text();
@@ -130,7 +141,7 @@ async function runDiscovery(environment, participantId, options) {
     }
 
     await processSupportedDocuments(encodedDocs, async () => {
-      await runDiscovery(environment, participantId, options);
+      await runDiscovery(participantId, options);
     });
 
     const file = path.join(ARTEFACTS_DIR, `${refId}.svg`);
@@ -147,7 +158,7 @@ async function runDiscovery(environment, participantId, options) {
     stopSpinner();
 
     await processSupportedDocuments(encodedDocs, async () => {
-      await runDiscovery(environment, participantId, options);
+      await runDiscovery(participantId, options);
     });
 
     const file = path.join(ARTEFACTS_DIR, `${refId}.puml`);
@@ -164,7 +175,7 @@ async function runDiscovery(environment, participantId, options) {
   stopSpinner();
 
   await processSupportedDocuments(encodedDocs, async () => {
-    await runDiscovery(environment, participantId, options);
+    await runDiscovery(participantId, options);
   });
 
   const file = path.join(ARTEFACTS_DIR, `${refId}.json`);
