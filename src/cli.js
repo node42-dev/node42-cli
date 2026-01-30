@@ -2,9 +2,9 @@
 
 const { Command } = require("commander");
 const { login, logout, checkAuth } = require("./auth");
-const { getUser, getUserUsage } = require("./user");
+const { getUserWithIndex, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
-const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs, getArtefactExt } = require("./utils");
+const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs, getArtefactExt, cleanAppDirs } = require("./utils");
 const { NODE42_DIR, ARTEFACTS_DIR, DEFAULT_OUTPUT, DEFAULT_FORMAT } = require("./config");
 
 createAppDirs(); 
@@ -18,7 +18,7 @@ const path = require("path");
 
 program
   .name("n42")
-  .description("Command-line interface for eDelivery path discovery and diagnostics")
+  .description("Node42 Command-line interface for eDelivery path discovery and diagnostics")
   .version(pkg.version);
 
 program
@@ -51,15 +51,33 @@ program
   .action(logout);
 
 program
+  .command("clean")
+  .description("Remove locally stored artefacts and cache")
+  .option("--tokens", "Remove stored authentication tokens")
+  .option("--artefacts", "Remove artefacts")
+  .option("--transactions", "Remove transactions")
+  .option("--validations", "Remove validations")
+  .option("--db", "Remove local database")
+  .option("--all", "Wipe all local data")
+  .action((options)=> {
+      cleanAppDirs(options);
+  });
+
+program
   .command("me")
   .description("Returns identity and billing status for the authenticated user.")
   .action(async () => {
     const stopSpinner = startSpinner();
     
-    await checkAuth(); 
-    const user = getUser();
+    const authenticated = await checkAuth(); 
     stopSpinner();
+
+    if (!authenticated) {
+      console.error("Not authenticated");
+      process.exit(1);
+    }
     
+    const user = getUserWithIndex(0);
     const currentMonth = new Date().toISOString().slice(0, 7);
     console.log(`Node42 CLI v${pkg.version}
     User
@@ -71,7 +89,7 @@ program
     Rate Limits
       Discovery    : ${user.rateLimits.discovery}
       Transactions : ${user.rateLimits.transactions}
-      Validation  : ${user.rateLimits.validation}
+      Validation   : ${user.rateLimits.validation}
   
     Usage (Current Month)
       Discovery    : ${user.serviceUsage.discovery[currentMonth] ?? 0}
@@ -83,25 +101,31 @@ program
 program
   .command("usage <service>")
   .description("Returns usage for the authenticated user.")
-  .action((service) => {
-    const userUsage = getUserUsage();
-    const currentMonth = new Date().toISOString().slice(0, 7);
-
-    const usage =
-      userUsage?.serviceUsage?.[service]?.[currentMonth] ?? 0;
+  .option("-m, --month <yyyy-mm>", "Show usage for a specific month")
+  .action((service, options) => {
+    const user = getUserWithIndex(0);
+    const currentMonth = options.month ? options.month : new Date().toISOString().slice(0, 7);
+    let usage = getUserUsage(user.id, service, currentMonth);
+    if (!usage) {
+      usage = 0;
+    }
 
     clearScreen(`Node42 CLI v${pkg.version}`);
     console.log(`Usage for ${service} (${currentMonth}): ${usage}`);
   });
 
 program
-  .command("history <participantId>")
+  .command("history [participantId]")
   .description("Show local discovery history for a participant")
   .option("--today", "Show only today's artefacts")
   .option("--day <yyyy-mm-dd>", "Show artefacts for a specific day")
   .option("--last <n>", "Show only last N results", parseInt)
   .action((participantId, options) => {
-    let artefacts = db.artefactsByParticipant(participantId) ?? [];
+    let artefacts = participantId
+      ? db.artefactsByParticipant(participantId)
+      : db.get("artefacts");
+
+    artefacts ??= [];
 
     // newest first
     artefacts.sort((a, b) => b.createdAt - a.createdAt);
@@ -132,7 +156,8 @@ program
 
     if (!artefacts.length) {
       clearScreen(`Node42 CLI v${pkg.version}`);
-      console.log(`No artefacts found. (${dayFilter})`);
+      const filter = dayFilter !== null ? ` (${dayFilter})` : ``;
+      console.log(`No artefacts found.${filter}`);
       return;
     }
 
@@ -140,13 +165,23 @@ program
     clearScreen(`Node42 CLI v${pkg.version}`);
     console.log(`Found ${artefacts.length} artefact(s)${filterInfo}\n`);
 
+    const DATE = "DATE".padEnd(19);
+    const PID = "PID".padEnd(15);
+    const FILE = "FILE";
+    console.log(`${DATE} ${PID} ${FILE}`);
+
     for (const item of artefacts) {
       const d = new Date(item.createdAt);
       const dt = d.toISOString().slice(0, 19).replace("T", " ");
-      const ext = getArtefactExt(item.output, item.format);
-      const file = path.join(ARTEFACTS_DIR, `${item.id}.${ext}`);
+      const file = path.join(ARTEFACTS_DIR, `${item.file}`);
 
-      console.log(`${dt}  ${file}`);
+      let pid = item.participantId;
+      if (!participantId) {
+        pid = pid.length > 15 ? pid.substring(0, 12) + "..." : pid
+        console.log(`${dt} ${pid.padEnd(15)} ${file}`);
+      } else {
+        console.log(`${dt} ${file}`);
+      }
     }
 
     console.log("");
@@ -159,7 +194,7 @@ const discover = program
 
 discover
   .command("peppol <participantId>")
-  .description("Resolve the Peppol eDelivery message path")
+  .description("Resolve and validate the full (Peppol) eDelivery path:\nSML/SMK (BDXR DNS) lookup, SMP resolution, endpoint discovery, and TLS diagnostics.")
   .option("-e, --env <environment>", "Environment", "TEST")
   .option("-o, --output <type>", "Result type (json | plantuml)", DEFAULT_OUTPUT)
   .option("-f, --format <format>", "When output=plantuml (svg | text)", DEFAULT_FORMAT)

@@ -17,6 +17,8 @@ describe("auth", () => {
     beforeEach(() => {
       sinon.restore();
 
+      global.fetch = sinon.stub();
+     
       db.setSource(TEST_DB);
       if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 
@@ -34,14 +36,17 @@ describe("auth", () => {
         .onSecondCall().resolves("secret");
 
       sinon.stub(utils, "startSpinner").callsFake(() => () => {});
-      sinon.stub(user, "getUser").returns({
+      sinon.stub(user, "getUserWithIndex")
+      .withArgs(0)
+      .returns({
+        id: "1",
         userName: "User",
         userMail: "user@test.com",
-        role: "user"
+        role: "user",
       });
 
-      sinon.stub(fs, "mkdirSync");
-      sinon.stub(fs, "writeFileSync");
+      sinon.spy(fs, "mkdirSync");
+      sinon.spy(fs, "writeFileSync");
 
       sinon.stub(console, "log");
       sinon.stub(console, "error");
@@ -52,7 +57,7 @@ describe("auth", () => {
       auth = require("../src/auth");
       login = auth.login;
 
-      sinon.stub(auth, "checkAuth").returns(true);
+      sinon.stub(auth, "checkAuth").resolves(true);
     });
 
     afterEach(() => {
@@ -62,7 +67,7 @@ describe("auth", () => {
 
     it("logs in successfully and writes tokens", async () => {
       // mock fetch
-      global.fetch = sinon.stub().resolves({
+      global.fetch.resolves({
         ok: true,
         json: async () => ({
           accessToken: "a",
@@ -78,7 +83,7 @@ describe("auth", () => {
     });
 
     it("exits on http error", async () => {
-      global.fetch = sinon.stub().resolves({
+      global.fetch.resolves({
         ok: false,
         status: 401,
         json: async () => ({})

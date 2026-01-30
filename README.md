@@ -11,13 +11,14 @@ routing, SMP resolution, and Access Point behavior.
 
 ## Features
 
--   Peppol eDelivery path discovery
--   SMP and Access Point resolution diagnostics
--   Supported document type detection
--   PlantUML and SVG visualizations
--   Authenticated API access
--   Deterministic, script-friendly output
--   No browser automation or UI side effects
+- Peppol eDelivery path discovery
+- SMP and Access Point resolution diagnostics
+- Supported document type detection
+- PlantUML and SVG visualizations
+- Authenticated API access
+- Deterministic, script-friendly output
+- No browser automation or UI side effects
+- Local artefact history inspection
 
 ## Installation
 
@@ -43,7 +44,7 @@ n42 --version
 ## Authentication
 
 Authenticate once using your Node42 account credentials.\
-Tokens are stored locally under `~/.node42/`.
+Tokens are stored locally under `~/.node42/tokens.json`.
 
 ``` bash
 n42 login
@@ -64,6 +65,35 @@ n42 me
 ``` bash
 n42 discover peppol <participantId>
 ```
+
+#### Available options:
+- **-e**, **--env** `<environment>`  Environment (TEST | PROD)
+- **-o**, **--output** `<type>`      Result type (json | plantuml)
+- **-f**, **--format** `<format>`    When output=plantuml (svg | text)
+- **--force-https**            Force HTTPS endpoints
+- **--insecure**               Disable TLS certificate validation
+- **--fetch-business-card**    Fetch Peppol business card
+- **--reverse-lookup**         Enable reverse lookup
+- **--probe-endpoints**        Probe resolved endpoints
+
+### History
+
+``` bash
+n42 history <participantId>
+```
+
+Example output:
+
+```bash
+DATE                PID             FILE
+2026-01-30 15:42:18 9915:helger     ~/.node42/artefacts/discovery/b91f83e2.svg
+2026-01-30 15:42:10 9915:helger     ~/.node42/artefacts/discovery/ba1cbc8d.svg
+```
+
+#### Available options:
+- **--today**               Show only today's artefacts
+- **--day** `<yyyy-mm-dd>`  Show artefacts for a specific day
+- **--last** `<n>`          Show only last N results
 
 ------------------------------------------------------------------------
 

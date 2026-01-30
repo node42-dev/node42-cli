@@ -2,6 +2,7 @@ const fs = require("fs");
 const inquirer = require("inquirer");
 const readline = require("readline");
 const config = require("./config");
+const db = require("./db");
 
 
 function clearScreen(text) {
@@ -97,11 +98,15 @@ function validateId(type, id) {
   }
 }
 
+function getShortId(id) {
+  return id.slice(0, 8);
+}
+
 function createAppDirs(force=false) {
   fs.mkdirSync(config.NODE42_DIR, { recursive: true });
   fs.mkdirSync(config.ARTEFACTS_DIR, { recursive: true });
   fs.mkdirSync(config.TRANSACTIONS_DIR, { recursive: true });
-  fs.mkdirSync(config.VALIDATION_DIR, { recursive: true });
+  fs.mkdirSync(config.VALIDATIONS_DIR, { recursive: true });
 
   if (!fs.existsSync(config.CONFIG_FILE) || force) {
     fs.writeFileSync(
@@ -112,6 +117,67 @@ function createAppDirs(force=false) {
       }, null, 2)
     );
   }
+}
+
+function cleanAppDirs(options) {
+  const {
+    tokens,
+    artefacts,
+    transactions,
+    validations,
+    db: dbFlag,
+    all
+  } = options;
+
+  if ((all || tokens) && fs.existsSync(config.TOKENS_FILE)) {
+    fs.unlinkSync(config.TOKENS_FILE);
+    console.log("Tokens removed");
+  }
+
+  if ((all || dbFlag) && fs.existsSync(config.DATABASE_FILE)) {
+    fs.unlinkSync(config.DATABASE_FILE);
+    console.log("Database removed");
+  }
+
+  if (all || artefacts) {
+    try {
+      db.clear("artefacts");
+    } catch {}
+
+    if (fs.existsSync(config.ARTEFACTS_DIR)) {
+      fs.rmSync(config.ARTEFACTS_DIR, { recursive: true, force: true });
+      fs.mkdirSync(config.ARTEFACTS_DIR, { recursive: true });
+    }
+
+    console.log("Artefacts removed");
+  }
+
+  if (all || transactions) {
+    try {
+      db.clear("transactions");
+    } catch {}
+
+    if (fs.existsSync(config.TRANSACTIONS_DIR)) {
+      fs.rmSync(config.TRANSACTIONS_DIR, { recursive: true, force: true });
+      fs.mkdirSync(config.TRANSACTIONS_DIR, { recursive: true });
+    }
+
+    console.log("Transactions removed");
+  }
+
+  if (all || validations) {
+    try {
+      db.clear("validations");
+    } catch {}
+
+    if (fs.existsSync(config.VALIDATIONS_DIR)) {
+      fs.rmSync(config.VALIDATIONS_DIR, { recursive: true, force: true });
+      fs.mkdirSync(config.VALIDATIONS_DIR, { recursive: true });
+    }
+
+    console.log("Transactions removed");
+  }
+ 
 }
 
 function buildDocLabel({ scheme, value }) {
@@ -163,4 +229,4 @@ function getArtefactExt(output, format) {
   }
 }
 
-module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, createAppDirs, getArtefactExt };
+module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, getShortId, createAppDirs, cleanAppDirs, getArtefactExt };

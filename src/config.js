@@ -12,7 +12,7 @@ const config = {
   
   ARTEFACTS_DIR: null,
   TRANSACTIONS_DIR: null,
-  VALIDATION_DIR: null,
+  VALIDATIONS_DIR: null,
   
   DATABASE_FILE: null,
   TOKENS_FILE: null,
@@ -23,12 +23,13 @@ const config = {
 
   EP_SIGNIN: "auth/signin",
   EP_REFRESH: "auth/refresh",
+  EP_ME: "users/me",
   EP_DISCOVER: "discover/peppol"
 };
 
 config.ARTEFACTS_DIR = path.join(config.NODE42_DIR, "artefacts", "discovery");
 config.TRANSACTIONS_DIR = path.join(config.NODE42_DIR, "artefacts", "transactions");
-config.VALIDATION_DIR = path.join(config.NODE42_DIR, "artefacts", "validation");
+config.VALIDATIONS_DIR = path.join(config.NODE42_DIR, "artefacts", "validations");
 
 config.DATABASE_FILE = path.join(config.NODE42_DIR, "db.json");
 config.TOKENS_FILE = path.join(config.NODE42_DIR, "tokens.json");

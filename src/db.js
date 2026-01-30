@@ -13,7 +13,6 @@ function load() {
   if (!fs.existsSync(DATABASE_FILE)) return { 
     user: [],
     artefacts: [],
-    usage: [], 
   };
   return JSON.parse(fs.readFileSync(DATABASE_FILE, "utf8"));
 }
@@ -91,6 +90,12 @@ function remove(collection, keyValue, key = "id") {
   save(db);
 }
 
+function clear(collection) {
+  const db = load();
+  db[collection] = [];
+  save(db);
+}
+
 function get(collection) {
   const db = load();
   return db[collection] ?? [];
@@ -154,4 +159,4 @@ function artefactsByParticipant(pid) {
   return idx[pid] ?? [];
 }
 
-module.exports = { setSource, load, save, insert, update, upsert, replace, set, remove, get, find, indexBy, indexByFn, indexByMap, artefactsByParticipant };
+module.exports = { setSource, load, save, insert, update, upsert, replace, set, remove, clear, get, find, indexBy, indexByFn, indexByMap, artefactsByParticipant };
