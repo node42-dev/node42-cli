@@ -4,8 +4,8 @@ const { Command } = require("commander");
 const { login, logout, checkAuth } = require("./auth");
 const { getUser, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
-const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs } = require("./utils");
-const { NODE42_DIR, ARTEFACTS_DIR } = require("./config");
+const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs, getArtefactExt } = require("./utils");
+const { NODE42_DIR, ARTEFACTS_DIR, DEFAULT_OUTPUT, DEFAULT_FORMAT } = require("./config");
 
 createAppDirs(); 
 
@@ -58,12 +58,26 @@ program
     
     await checkAuth(); 
     const user = getUser();
-
     stopSpinner();
     
-    console.log(
-      `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
-    );
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    console.log(`Node42 CLI v${pkg.version}
+    User
+      ID           : ${user.id}
+      Name         : ${user.userName}
+      Email        : ${user.userMail}
+      Role         : ${user.role}
+
+    Rate Limits
+      Discovery    : ${user.rateLimits.discovery}
+      Transactions : ${user.rateLimits.transactions}
+      Validation  : ${user.rateLimits.validation}
+  
+    Usage (Current Month)
+      Discovery    : ${user.serviceUsage.discovery[currentMonth] ?? 0}
+      Transactions : ${user.serviceUsage.transactions[currentMonth] ?? 0}
+      Validation   : ${user.serviceUsage.validation[currentMonth] ?? 0}
+    `);
   });
 
 program
@@ -83,16 +97,61 @@ program
 program
   .command("history <participantId>")
   .description("Show local discovery history for a participant")
-  .action((participantId) => {
-    const artefacts = db.artefactsByParticipant(participantId);
+  .option("--today", "Show only today's artefacts")
+  .option("--day <yyyy-mm-dd>", "Show artefacts for a specific day")
+  .option("--last <n>", "Show only last N results", parseInt)
+  .action((participantId, options) => {
+    let artefacts = db.artefactsByParticipant(participantId) ?? [];
+
+    // newest first
+    artefacts.sort((a, b) => b.createdAt - a.createdAt);
+
+    // ---- DATE FILTER ----
+    let dayFilter = null;
+    let filterInfo = "";
+
+    if (options.today) {
+      dayFilter = new Date().toISOString().slice(0, 10);
+      filterInfo = ", created today";
+    } else if (options.day) {
+      dayFilter = options.day;
+      filterInfo = `, created ${options.day}`;
+    }
+
+    if (dayFilter) {
+      artefacts = artefacts.filter(x =>
+        new Date(x.createdAt).toISOString().slice(0, 10) === dayFilter
+      );
+    }
+
+    // ---- LAST N FILTER ----
+    if (options.last && Number.isInteger(options.last) && options.last > 0) {
+      artefacts = artefacts.slice(0, options.last);
+      filterInfo += `, showing last ${options.last}`;
+    }
+
+    if (!artefacts.length) {
+      clearScreen(`Node42 CLI v${pkg.version}`);
+      console.log(`No artefacts found. (${dayFilter})`);
+      return;
+    }
+
+    // ---- OUTPUT ----
+    clearScreen(`Node42 CLI v${pkg.version}`);
+    console.log(`Found ${artefacts.length} artefact(s)${filterInfo}\n`);
 
     for (const item of artefacts) {
       const d = new Date(item.createdAt);
-      const dt = d.toISOString().slice(0,19).replace("T"," ");
-      const file = path.join(ARTEFACTS_DIR, `${item.id}.${item.format}`);
-      console.log(`${dt}: ${file}`);
+      const dt = d.toISOString().slice(0, 19).replace("T", " ");
+      const ext = getArtefactExt(item.output, item.format);
+      const file = path.join(ARTEFACTS_DIR, `${item.id}.${ext}`);
+
+      console.log(`${dt}  ${file}`);
     }
+
+    console.log("");
   });
+
 
 const discover = program
   .command("discover")
@@ -102,8 +161,8 @@ discover
   .command("peppol <participantId>")
   .description("Resolve the Peppol eDelivery message path")
   .option("-e, --env <environment>", "Environment", "TEST")
-  .option("-o, --output <type>", "Result type (json | plantuml)", "json")
-  .option("-f, --format <format>", "When output=plantuml (svg | text)", "svg")
+  .option("-o, --output <type>", "Result type (json | plantuml)", DEFAULT_OUTPUT)
+  .option("-f, --format <format>", "When output=plantuml (svg | text)", DEFAULT_FORMAT)
   .option("--force-https", "Force HTTPS endpoints", true)
   .option("--insecure", "Disable TLS certificate validation", false)
   .option("--fetch-business-card", "Fetch Peppol business card", false)

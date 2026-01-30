@@ -120,15 +120,13 @@ async function runDiscovery(participantId, options) {
   const currentMonth = new Date().toISOString().slice(0, 7);
   userUsage.serviceUsage.discovery[currentMonth] = serviceUsage;
   
-  db.replace("usage", userUsage);
+  db.replace("serviceUsage", userUsage);
 
   db.insert("artefacts", {
     id: refId,
     participantId,
     options,
-    output,
-    format,
-    createdAt: Date().now
+    createdAt: Date.now()
   });
  
   if (output === "plantuml" && format === "svg") {

@@ -11,7 +11,7 @@ function getUser() {
 }
 
 function getUserUsage() {
-  const usage = db.get("usage");
+  const usage = db.get("serviceUsage");
 
   if (usage && usage.serviceUsage) return usage;
 
