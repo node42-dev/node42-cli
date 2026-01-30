@@ -1,12 +1,76 @@
 const fs = require("fs");
-const { NODE42_DIR, TOKENS_FILE, API_URL, EP_REFRESH } = require("./config");
+const { NODE42_DIR, TOKENS_FILE, API_URL, EP_SIGNIN, EP_REFRESH } = require("./config");
 const { handleError } = require("./errors");
-const { updateUserInfo, updateUserUsage } = require("./user");
+const { getUser } = require("./user");
+const { clearScreen, ask, startSpinner } = require("./utils");
+const db = require("./db");
 
+
+async function login() {
+  clearScreen("Sign in to Node42");
+  let user = getUser();
+
+  const username = await ask("Username", user.userMail ?? "");
+  const password = await ask("Password", null, true);
+
+  console.log(username + ", " + password);
+
+  let stopSpinner = startSpinner();
+
+  const res = await fetch(`${API_URL}/${EP_SIGNIN}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  });
+
+  if (!res.ok) {
+    stopSpinner();
+
+    console.error(`Login failed (${res.status}) – Invalid credentials`);
+    process.exit(1);
+  }
+
+  const tokens = await res.json();
+
+  const { accessToken, refreshToken, idToken } = tokens;
+  if (!accessToken || !refreshToken || !idToken) {
+    stopSpinner();
+
+    console.error("Invalid auth response");
+    process.exit(1);
+  }
+
+  fs.mkdirSync(NODE42_DIR, { recursive: true });
+  fs.writeFileSync(
+    TOKENS_FILE,
+    JSON.stringify({ accessToken, refreshToken, idToken }, null, 2)
+  );
+
+  stopSpinner();
+  stopSpinner = startSpinner();
+
+  await checkAuth();
+  user = getUser();
+  
+  console.log(
+    `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
+  );
+  
+  stopSpinner();
+}
+
+function logout() {
+  if (fs.existsSync(TOKENS_FILE)) {
+    fs.unlinkSync(TOKENS_FILE);
+  }
+
+  let user = getUser();
+  db.delete("user", user.id);
+}
 
 function loadAuth() {
   if (!fs.existsSync(TOKENS_FILE)) {
-    console.error("Not logged in. Run: n42 signin");
+    console.error("Not logged in. Run: n42 login");
     process.exit(1);
   }
   return JSON.parse(fs.readFileSync(TOKENS_FILE, "utf8"));
@@ -36,14 +100,17 @@ async function checkAuth() {
   }
 
   const auth = await res.json();
+  console.log(auth);
   if (auth) {  
-    updateUserInfo({
+
+    db.upsert("user", {
+      id: auth.sub,
       userName: auth.userName,
       userMail: auth.userMail,
       role: auth.role,
-    });
+    })
 
-    updateUserUsage({ serviceUsage: auth.serviceUsage });
+    db.replace("usage", auth.serviceUsage);
     return true;
   }
 
@@ -125,4 +192,4 @@ async function fetchWithAuth(url, options = {}) {
   });
 }
 
-module.exports = { loadAuth, checkAuth, fetchWithAuth };
+module.exports = { login, logout, loadAuth, checkAuth, fetchWithAuth };

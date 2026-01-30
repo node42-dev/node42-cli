@@ -1,5 +1,8 @@
+const fs = require("fs");
 const inquirer = require("inquirer");
 const readline = require("readline");
+const config = require("./config");
+
 
 function clearScreen(text) {
   process.stdout.write("\x1Bc");
@@ -8,13 +11,15 @@ function clearScreen(text) {
   }
 }
 
-function ask(question, hidden=false) {
+function ask(question, def, hidden=false) {
   return new Promise(resolve => {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
       terminal: true
     });
+
+    const q = def ? `${question} (${def}): ` : `${question}: `;
 
     process.stdin.on("data", char => {
       char = char + "";
@@ -28,16 +33,16 @@ function ask(question, hidden=false) {
           if (hidden) {
             process.stdout.clearLine(0);
             process.stdout.cursorTo(0);
-            process.stdout.write(question + "*".repeat(rl.line.length));
+            process.stdout.write(q + "*".repeat(rl.line.length));
           }
           break;
       }
     });
 
-    rl.question(question, answer => {
+    rl.question(q, answer => {
       rl.history = rl.history.slice(1);
       rl.close();
-      resolve(answer);
+      resolve(answer || def);
     });
   });
 }
@@ -54,6 +59,59 @@ function startSpinner(text = "Working") {
     clearInterval(timer);
     process.stdout.write("\r\x1b[K"); // carriage return + clear line
   };
+}
+
+async function promptForDocument(docs) {
+  const { document } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "document",
+      message: "Select document type:",
+      choices: docs.map(d => ({
+        name: d.label,
+        value: d
+      }))
+    }
+  ]);
+
+  return document;
+}
+
+function validateEnv(env) {
+  const allowedEnvs = ["TEST", "PROD"];
+  if (!allowedEnvs.includes(env.toUpperCase())) {
+    throw new Error(
+      `Invalid environment: ${env}\nAllowed values: ${allowedEnvs.join(", ")}`
+    );
+  }
+}
+
+function validateId(type, id) {
+  const value = id.replace(/\s+/g, "");
+
+  // ISO 6523–safe; participant id like 0000:12345 or 9915:abcde
+  if (!/^[0-9]{4}:[a-zA-Z0-9\-\._~]{1,135}$/.test(value)) {
+    throw new Error(
+      `Invalid ${type}Id: ${id}\nExpected format: 0007:123456789 or 0007:abcd`
+    );
+  }
+}
+
+function createAppDirs(force=false) {
+  fs.mkdirSync(config.NODE42_DIR, { recursive: true });
+  fs.mkdirSync(config.ARTEFACTS_DIR, { recursive: true });
+  fs.mkdirSync(config.TRANSACTIONS_DIR, { recursive: true });
+  fs.mkdirSync(config.VALIDATION_DIR, { recursive: true });
+
+  if (!fs.existsSync(config.CONFIG_FILE) || force) {
+    fs.writeFileSync(
+      config.CONFIG_FILE,
+      JSON.stringify({
+        DEFAULT_OUTPUT: config.DEFAULT_OUTPUT,
+        DEFAULT_FORMAT: config.DEFAULT_FORMAT
+      }, null, 2)
+    );
+  }
 }
 
 function buildDocLabel({ scheme, value }) {
@@ -95,40 +153,4 @@ function buildDocLabel({ scheme, value }) {
   return docName;
 }
 
-async function promptForDocument(docs) {
-  const { document } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "document",
-      message: "Select document type:",
-      choices: docs.map(d => ({
-        name: d.label,
-        value: d
-      }))
-    }
-  ]);
-
-  return document;
-}
-
-function validateEnv(env) {
-  const allowedEnvs = ["TEST", "PROD"];
-  if (!allowedEnvs.includes(env.toUpperCase())) {
-    throw new Error(
-      `Invalid environment: ${env}\nAllowed values: ${allowedEnvs.join(", ")}`
-    );
-  }
-}
-
-function validateId(type, id) {
-  const value = id.replace(/\s+/g, "");
-
-  // ISO 6523–safe; participant id like 0000:12345 or 9915:abcde
-  if (!/^[0-9]{4}:[a-zA-Z0-9\-\._~]{1,135}$/.test(value)) {
-    throw new Error(
-      `Invalid ${type}Id: ${id}\nExpected format: 0007:123456789 or 0007:abcd`
-    );
-  }
-}
-
-module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId };
+module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, createAppDirs };
