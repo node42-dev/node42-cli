@@ -156,7 +156,8 @@ program
 
     if (!artefacts.length) {
       clearScreen(`Node42 CLI v${pkg.version}`);
-      console.log(`No artefacts found. (${dayFilter})`);
+      const filter = dayFilter !== null ? ` (${dayFilter})` : ``;
+      console.log(`No artefacts found.${filter}`);
       return;
     }
 
