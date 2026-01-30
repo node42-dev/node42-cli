@@ -12,8 +12,7 @@ async function login() {
 
   const username = await ask("Username", user.userMail ?? "");
   const password = await ask("Password", null, true);
-
-  console.log(username + ", " + password);
+  //console.log(username + ", " + password);
 
   let stopSpinner = startSpinner();
 
@@ -25,17 +24,16 @@ async function login() {
 
   if (!res.ok) {
     stopSpinner();
-
+    
     console.error(`Login failed (${res.status}) – Invalid credentials`);
     process.exit(1);
   }
 
   const tokens = await res.json();
-
+  stopSpinner();
+  
   const { accessToken, refreshToken, idToken } = tokens;
   if (!accessToken || !refreshToken || !idToken) {
-    stopSpinner();
-
     console.error("Invalid auth response");
     process.exit(1);
   }
@@ -46,31 +44,32 @@ async function login() {
     JSON.stringify({ accessToken, refreshToken, idToken }, null, 2)
   );
 
-  stopSpinner();
   stopSpinner = startSpinner();
 
-  await checkAuth();
+  const authenticated = await checkAuth();
+  stopSpinner();
+
+  if (!authenticated) {
+    console.error("Not authenticated");
+    process.exit(1);
+  }
+
   user = getUser();
-  
   console.log(
     `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
   );
-  
-  stopSpinner();
 }
 
 function logout() {
   if (fs.existsSync(TOKENS_FILE)) {
     fs.unlinkSync(TOKENS_FILE);
   }
-
-  let user = getUser();
-  db.delete("user", user.id);
+  db.clear("user");
 }
 
-function loadAuth() {
+function loadTokens() {
   if (!fs.existsSync(TOKENS_FILE)) {
-    console.error("Not logged in. Run: n42 login");
+    console.error("Tokens missing...\nRun: n42 login");
     process.exit(1);
   }
   return JSON.parse(fs.readFileSync(TOKENS_FILE, "utf8"));
@@ -79,7 +78,7 @@ function loadAuth() {
 async function checkAuth() {
   if (!fs.existsSync(TOKENS_FILE)) {
     handleError({ code: "N42E-9033", message: "Token missing..."})
-    process.exit(1);
+    return false;
   }
 
   const res = await fetchWithAuth(`${API_URL}/users/me`, {
@@ -95,25 +94,22 @@ async function checkAuth() {
 
   if (!res.ok) {
     const err = await res.json();
-    await handleError(err);
+    handleError(err);
     return false;
   }
 
-  const auth = await res.json();
-  //console.log(auth);
-  if (auth) {  
-
+  const userInfo = await res.json();
+  //console.log(userInfo);
+  
+  if (userInfo) {  
     db.upsert("user", {
-      id: auth.sub,
-      userName: auth.userName,
-      userMail: auth.userMail,
-      role: auth.role,
-      rateLimits: auth.rateLimits,
-      serviceUsage: auth.serviceUsage,
+      id: userInfo.sub,
+      userName: userInfo.userName,
+      userMail: userInfo.userMail,
+      role: userInfo.role,
+      rateLimits: userInfo.rateLimits,
+      serviceUsage: userInfo.serviceUsage,
     })
-
-    db.replace("serviceUsage", auth.serviceUsage);
-    db.replace("rateLimits", auth.rateLimits);
     return true;
   }
 
@@ -121,7 +117,7 @@ async function checkAuth() {
 }
 
 async function refreshSession() {
-  const { refreshToken } = loadAuth();
+  const { refreshToken } = loadTokens();
   if (!refreshToken) {
     return false;
   }
@@ -162,7 +158,7 @@ async function refreshSession() {
 }
 
 async function fetchWithAuth(url, options = {}) {
-  let { accessToken } = loadAuth();
+  let { accessToken } = loadTokens();
   if (!accessToken) {
     handleError({ code: "N42E-9032" });
     return;
@@ -185,7 +181,7 @@ async function fetchWithAuth(url, options = {}) {
     return res;
   }
 
-  accessToken = loadAuth().accessToken;
+  accessToken = loadTokens().accessToken;
   return fetch(url, {
     ...options,
     headers: {
@@ -195,4 +191,4 @@ async function fetchWithAuth(url, options = {}) {
   });
 }
 
-module.exports = { login, logout, loadAuth, checkAuth, fetchWithAuth };
+module.exports = { login, logout, loadTokens, checkAuth, fetchWithAuth };

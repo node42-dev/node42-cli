@@ -5,8 +5,8 @@ const db = require("./db");
 
 const { fetchWithAuth } = require("./auth");
 const { API_URL, EP_DISCOVER, DEFAULT_OUTPUT, DEFAULT_FORMAT, ARTEFACTS_DIR } = require("./config");
-const { getUserUsage } = require("./user");
-const { clearScreen, startSpinner, buildDocLabel, promptForDocument } = require("./utils");
+const { getUser, setUserUsage } = require("./user");
+const { clearScreen, startSpinner, buildDocLabel, promptForDocument, getShortId, getArtefactExt } = require("./utils");
 const { handleError } = require("./errors"); 
 
 const DEFAULT_DISCOVERY_INPUT = {
@@ -115,17 +115,25 @@ async function runDiscovery(participantId, options) {
   const serviceUsage = res.headers.get("X-Node42-ServiceUsage");
   const rateLimit = res.headers.get("X-Node42-RateLimit");
   const encodedDocs = res.headers.get("X-Node42-Documents");
-
-  const userUsage = getUserUsage();
   const currentMonth = new Date().toISOString().slice(0, 7);
-  userUsage.serviceUsage.discovery[currentMonth] = serviceUsage;
-  
-  db.replace("serviceUsage", userUsage);
+ 
+  const user = getUser();
+  setUserUsage(
+    user.id,
+    "discovery",
+    currentMonth,
+    serviceUsage
+  );
+
+  const fileId = getShortId(refId);
+  const fileExt = getArtefactExt(output, format);
+  const fileName = `${fileId}.${fileExt}`;
 
   db.insert("artefacts", {
     id: refId,
     participantId,
     options,
+    file: fileName, 
     createdAt: Date.now()
   });
  
@@ -142,7 +150,7 @@ async function runDiscovery(participantId, options) {
       await runDiscovery(participantId, options);
     });
 
-    const file = path.join(ARTEFACTS_DIR, `${refId}.svg`);
+    const file = path.join(ARTEFACTS_DIR, `${fileName}`);
     fs.writeFileSync(file, svg);
 
     console.log(`Discovery completed`);
@@ -159,7 +167,7 @@ async function runDiscovery(participantId, options) {
       await runDiscovery(participantId, options);
     });
 
-    const file = path.join(ARTEFACTS_DIR, `${refId}.puml`);
+    const file = path.join(ARTEFACTS_DIR, `${fileName}`);
     fs.writeFileSync(file, text);
 
     console.log(`Discovery completed`);
@@ -176,7 +184,7 @@ async function runDiscovery(participantId, options) {
     await runDiscovery(participantId, options);
   });
 
-  const file = path.join(ARTEFACTS_DIR, `${refId}.json`);
+  const file = path.join(ARTEFACTS_DIR, `${fileName}`);
   fs.writeFileSync(file, JSON.stringify(json, null, 2));
 
   console.log(`Discovery completed`);

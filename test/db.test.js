@@ -24,7 +24,6 @@ describe("db", () => {
       const dbObj = db.load();
       expect(dbObj).to.have.property("user");
       expect(dbObj).to.have.property("artefacts");
-      expect(dbObj).to.have.property("usage");
     });
   });
 

@@ -10,18 +10,28 @@ function getUser() {
     };
 }
 
-function getUserUsage() {
-  const usage = db.get("serviceUsage");
+function getUserUsage(userId, service, month) {
+  const database = db.load();
 
-  if (usage && usage.serviceUsage) return usage;
+  const u = database.user.find(x => x.id === userId);
+  if (!u) return;
 
-  return {
-    serviceUsage: {
-      discovery: {},
-      validation: {},
-      transactions: {}
-    }
-  };
+  u.serviceUsage[service] ??= {};
+  const usage = u.serviceUsage[service][month];
+  return usage;
 }
 
-module.exports = { getUser, getUserUsage };
+
+function setUserUsage(userId, service, month, value) {
+  const database = db.load();
+
+  const u = database.user.find(x => x.id === userId);
+  if (!u) return;
+
+  u.serviceUsage[service] ??= {};
+  u.serviceUsage[service][month] = value;
+
+  db.save(database);
+}
+
+module.exports = { getUser, getUserUsage, setUserUsage };

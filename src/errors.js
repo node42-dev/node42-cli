@@ -1,7 +1,7 @@
 const { WWW_URL } = require("./config");
 
 
-async function handleError(err) {
+function handleError(err) {
   //console.log(err);
 
   const code = err.code?.startsWith("N42E-")
@@ -16,9 +16,9 @@ async function handleError(err) {
   //console.log(url);
 
   if (message) {
-    console.error(`${err.message}\nSee details: ${url}\n`);
+    console.error(`\r${err.message}\nSee details: ${url}\n`);
   } else {
-    console.error(`See details: ${url}\n`);
+    console.error(`\rSee details: ${url}\n`);
   }
 }
 
