@@ -3,7 +3,9 @@ const { NODE42_DIR, TOKENS_FILE, API_URL, EP_SIGNIN, EP_REFRESH, EP_ME } = requi
 const { handleError } = require("./errors");
 const { getUserWithIndex } = require("./user");
 const { clearScreen, ask, startSpinner } = require("./utils");
+
 const db = require("./db");
+const C = require("./colors");
 
 
 async function login() {
@@ -25,7 +27,7 @@ async function login() {
   if (!res.ok) {
     stopSpinner();
     
-    console.error(`Login failed (${res.status}) – Invalid credentials`);
+    console.error(`[${res.status}] ${C.RED}Login failed${C.RESET} - Invalid credentials`);
     process.exit(1);
   }
 
@@ -34,7 +36,7 @@ async function login() {
   
   const { accessToken, refreshToken, idToken } = tokens;
   if (!accessToken || !refreshToken || !idToken) {
-    console.error("Invalid auth response");
+    console.error(`${C.RED}Invalid auth response`);
     process.exit(1);
   }
 
@@ -50,14 +52,12 @@ async function login() {
   stopSpinner();
 
   if (!authenticated) {
-    console.error("Not authenticated");
+    console.error(`${C.RED}Not authenticated${C.RESET}`);
     process.exit(1);
   }
 
   user = getUserWithIndex(0);
-  console.log(
-    `Authenticated as ${user.userName} <${user.userMail}> (${user.role})`
-  );
+  console.log(`Authenticated as ${user.userName} <${C.BLUE}${user.userMail}${C.RESET}> ${C.DIM}(${user.role})${C.RESET}\n`);
 }
 
 function logout() {
@@ -69,7 +69,8 @@ function logout() {
 
 function loadTokens() {
   if (!fs.existsSync(TOKENS_FILE)) {
-    console.error("Tokens missing...\nRun: n42 login");
+    console.error(`Tokens missing...`);
+    console.log(`Run: ${C.BLUE}n42 login${C.RESET}\n`);
     process.exit(1);
   }
   return JSON.parse(fs.readFileSync(TOKENS_FILE, "utf8"));

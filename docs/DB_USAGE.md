@@ -33,7 +33,6 @@ Example `db.json`:
 {
   "user": {},
   "artefacts": [],
-  "usage": {},
 }
 ```
 

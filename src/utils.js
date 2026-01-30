@@ -3,6 +3,7 @@ const inquirer = require("inquirer");
 const readline = require("readline");
 const config = require("./config");
 const db = require("./db");
+const C = require("./colors");
 
 
 function clearScreen(text) {
@@ -20,7 +21,7 @@ function ask(question, def, hidden=false) {
       terminal: true
     });
 
-    const q = def ? `${question} (${def}): ` : `${question}: `;
+    const q = def ? `${question} ${C.DIM}(${def})${C.RESET}: ` : `${question}: `;
 
     process.stdin.on("data", char => {
       char = char + "";
