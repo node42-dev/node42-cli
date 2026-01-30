@@ -12,6 +12,7 @@ createAppDirs();
 const program = new Command();
 const pkg = require("../package.json");
 const db = require("./db");
+const C = require("./colors");
 
 const fs = require("fs");
 const path = require("path");
@@ -27,7 +28,7 @@ program
   .action((shell) => {
 
     if (shell !== "bash") {
-      console.error("Only bash supported");
+      console.error(`${C.RED}Only bash supported${C.RESET}`);
       return;
     }
 
@@ -35,9 +36,9 @@ program
     const dest = path.join(NODE42_DIR, "completion.bash");
     fs.copyFileSync(src, dest);
 
-    console.log(`Completion script saved to ${dest}`);
+    console.log(`${C.DIM}Completion script saved to ${dest}${C.RESET}\n`);
     console.log(`Run this once:`);
-    console.log(`source ${dest}`);
+    console.log(`${C.BLUE}source ${dest}${C.RESET}\n`);
   });
 
 program
@@ -80,21 +81,21 @@ program
     const user = getUserWithIndex(0);
     const currentMonth = new Date().toISOString().slice(0, 7);
     console.log(`Node42 CLI v${pkg.version}
-    User
-      ID           : ${user.id}
+    ${C.BOLD}User${C.RESET}
+      ID           : ${C.CYAN}${user.id}${C.RESET}
       Name         : ${user.userName}
       Email        : ${user.userMail}
       Role         : ${user.role}
 
-    Rate Limits
-      Discovery    : ${user.rateLimits.discovery}
-      Transactions : ${user.rateLimits.transactions}
-      Validation   : ${user.rateLimits.validation}
+    ${C.BOLD}Rate Limits${C.RESET}
+      Discovery    : ${C.RED}${user.rateLimits.discovery}${C.RESET}
+      Transactions : ${C.RED}${user.rateLimits.transactions}${C.RESET}
+      Validation   : ${C.RED}${user.rateLimits.validation}${C.RESET}
   
-    Usage (Current Month)
-      Discovery    : ${user.serviceUsage.discovery[currentMonth] ?? 0}
-      Transactions : ${user.serviceUsage.transactions[currentMonth] ?? 0}
-      Validation   : ${user.serviceUsage.validation[currentMonth] ?? 0}
+    ${C.BOLD}Usage${C.RESET} ${C.DIM}(Current Month)${C.RESET}
+      Discovery    : ${C.RED}${user.serviceUsage.discovery[currentMonth] ?? 0}${C.RESET}
+      Transactions : ${C.RED}${user.serviceUsage.transactions[currentMonth] ?? 0}${C.RESET}
+      Validation   : ${C.RED}${user.serviceUsage.validation[currentMonth] ?? 0}${C.RESET}
     `);
   });
 
@@ -110,8 +111,9 @@ program
       usage = 0;
     }
 
-    clearScreen(`Node42 CLI v${pkg.version}`);
-    console.log(`Usage for ${service} (${currentMonth}): ${usage}`);
+    clearScreen(`Node42 CLI v${pkg.version}\n`);
+    console.log(`Usage ${C.BOLD}${service}${C.RESET}`);
+    console.log(`${C.DIM}${currentMonth}:${C.RESET} ${C.RED}${usage}${C.RESET}\n`);
   });
 
 program
@@ -163,24 +165,27 @@ program
 
     // ---- OUTPUT ----
     clearScreen(`Node42 CLI v${pkg.version}`);
-    console.log(`Found ${artefacts.length} artefact(s)${filterInfo}\n`);
+    console.log(`Found ${C.RED}${artefacts.length}${C.RESET} artefact(s)${filterInfo}\n`);
 
     const DATE = "DATE".padEnd(19);
     const PID = "PID".padEnd(15);
     const FILE = "FILE";
-    console.log(`${DATE} ${PID} ${FILE}`);
+    console.log(`${DATE} ${C.CYAN}${PID}${C.RESET} ${FILE}`);
 
     for (const item of artefacts) {
       const d = new Date(item.createdAt);
-      const dt = d.toISOString().slice(0, 19).replace("T", " ");
+      const iso = d.toISOString();           // 2026-01-30T16:53:28.123Z
+      const date = iso.slice(0, 10);         // 2026-01-30
+      const time = iso.slice(11, 19);        // 16:53:28
       const file = path.join(ARTEFACTS_DIR, `${item.file}`);
+      const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`
 
       let pid = item.participantId;
       if (!participantId) {
         pid = pid.length > 15 ? pid.substring(0, 12) + "..." : pid
-        console.log(`${dt} ${pid.padEnd(15)} ${file}`);
+        console.log(`${date} ${C.DIM}${time}${C.RESET} ${C.CYAN}${pid.padEnd(15)}${C.RESET} ${item.file} ${C.BLUE}[${link}]${C.RESET}`);
       } else {
-        console.log(`${dt} ${file}`);
+        console.log(`${date} ${C.DIM}${time}${C.RESET} ${item.file} ${C.BLUE}[${link}]${C.RESET}`);
       }
     }
 
