@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const pkg = require("../package.json");
 const db = require("./db");
+const C = require("./colors");
 
 const { fetchWithAuth } = require("./auth");
 const { API_URL, EP_DISCOVER, DEFAULT_OUTPUT, DEFAULT_FORMAT, ARTEFACTS_DIR } = require("./config");
@@ -88,7 +89,7 @@ async function runDiscovery(participantId, options) {
     }
   };
 
-  clearScreen(`Node42 CLI v${pkg.version}`);
+  clearScreen(`Node42 CLI v${pkg.version}\n`);
   const stopSpinner = startSpinner();
 
   const url = `${API_URL}/${EP_DISCOVER}?output=${output}&format=${format}`;
@@ -153,9 +154,12 @@ async function runDiscovery(participantId, options) {
     const file = path.join(ARTEFACTS_DIR, `${fileName}`);
     fs.writeFileSync(file, svg);
 
-    console.log(`Discovery completed`);
-    console.log(`Usage    : ${serviceUsage} / ${rateLimit}`);
-    console.log(`Artefact : ${file}\n`);
+    const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`;
+
+    console.log(`${C.BOLD}Discovery completed${C.RESET}`);
+    console.log(`PID      : ${C.CYAN}${participantId}${C.RESET}`);
+    console.log(`Artefact : ${fileName} ${C.BLUE}[${link}]${C.RESET}`);
+    console.log(`Usage    : ${C.RED}${serviceUsage}${C.RESET} ${C.DIM}(${rateLimit})${C.RESET}\n`);
     return;
   }
 
@@ -170,9 +174,12 @@ async function runDiscovery(participantId, options) {
     const file = path.join(ARTEFACTS_DIR, `${fileName}`);
     fs.writeFileSync(file, text);
 
-    console.log(`Discovery completed`);
-    console.log(`Usage    : ${serviceUsage} / ${rateLimit}`);
-    console.log(`Artefact : ${file}\n`);
+    const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`;
+
+    console.log(`${C.BOLD}Discovery completed${C.RESET}`);
+    console.log(`PID      : ${C.CYAN}${participantId}${C.RESET}`);
+    console.log(`Artefact : ${fileName} ${C.BLUE}[${link}]${C.RESET}`);
+    console.log(`Usage    : ${C.RED}${serviceUsage}${C.RESET} ${C.DIM}(${rateLimit})${C.RESET}\n`);
     return;
   }
 
@@ -187,9 +194,12 @@ async function runDiscovery(participantId, options) {
   const file = path.join(ARTEFACTS_DIR, `${fileName}`);
   fs.writeFileSync(file, JSON.stringify(json, null, 2));
 
-  console.log(`Discovery completed`);
-  console.log(`Usage    : ${serviceUsage} / ${rateLimit}`);
-  console.log(`Artefact : ${file}\n`);
+  const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`;
+
+  console.log(`${C.BOLD}Discovery completed${C.RESET}`);
+  console.log(`PID      : ${C.CYAN}${participantId}${C.RESET}`);
+  console.log(`Artefact : ${fileName} ${C.BLUE}[${link}]${C.RESET}`);
+  console.log(`Usage    : ${C.RED}${serviceUsage}${C.RESET} ${C.DIM}(${rateLimit})${C.RESET}\n`); 
 }
 
 module.exports = { runDiscovery };
