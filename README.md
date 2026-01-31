@@ -5,19 +5,17 @@ validation**, with support for the Peppol network.
 
 The Node42 CLI is designed for **system integrators, service providers,
 and operators** who need fast, repeatable insight into eDelivery
-routing, SMP resolution, and Access Point behavior.
+routing, SML/SMK, SMP resolution, and Access Point behavior.
 
 ------------------------------------------------------------------------
 
 ## Features
 
 - Peppol eDelivery path discovery
-- SMP and Access Point resolution diagnostics
+- SML/SMK, SMP and AP resolution diagnostics
 - Supported document type detection
-- PlantUML and SVG visualizations
-- Authenticated API access
-- Deterministic, script-friendly output
-- No browser automation or UI side effects
+- Discovery trace + diagram (SVG/PlantUML/MD)
+- Interactive diagrams with clickable links
 - Local artefact history inspection
 
 ## Installation
@@ -56,7 +54,28 @@ Check authentication status:
 n42 me
 ```
 
-------------------------------------------------------------------------
+## Configuration
+
+Configuration and cached data are stored under `~/.node42`
+
+``` bash
+~/.node42/
+├── artefacts
+│   ├── discovery
+│   ├── transactions
+│   └── validations
+├── assets
+├── config.json
+├── db.json
+└── tokens.json
+```
+
+## Help
+
+```bash
+n42 --help
+n42 discover --help
+```
 
 ## Peppol Discovery
 
@@ -116,7 +135,6 @@ Errors are printed with a clickable reference link:
 ## Security
 
 -   TLS verification enabled by default
--   Explicit `--insecure` flag for testing only
 -   Tokens stored locally, never logged
 
 ## License

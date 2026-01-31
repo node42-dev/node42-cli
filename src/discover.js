@@ -1,13 +1,12 @@
 const fs = require("fs");
 const path = require("path");
-const pkg = require("../package.json");
 const db = require("./db");
 const C = require("./colors");
 
 const { fetchWithAuth } = require("./auth");
-const { API_URL, EP_DISCOVER, DEFAULT_OUTPUT, DEFAULT_FORMAT, ARTEFACTS_DIR } = require("./config");
+const { API_URL, EP_DISCOVER, DEFAULT_OUTPUT, DEFAULT_FORMAT, NODE42_DIR, ARTEFACTS_DIR } = require("./config");
 const { getUserWithIndex, setUserUsage } = require("./user");
-const { clearScreen, startSpinner, buildDocLabel, promptForDocument, getShortId, getArtefactExt } = require("./utils");
+const { startSpinner, buildDocLabel, promptForDocument, getShortId, getArtefactExt } = require("./utils");
 const { handleError } = require("./errors"); 
 
 const DEFAULT_DISCOVERY_INPUT = {
@@ -34,6 +33,27 @@ const DEFAULT_DISCOVERY_INPUT = {
 };
 const discoveryInput = DEFAULT_DISCOVERY_INPUT;
 let docSelected = false;
+
+function wrapSvg(fileId, refId, svg) {
+  let html;
+
+  const now = new Date();
+  const timeText = now.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  const templateFile = path.join(NODE42_DIR, "assets/wrapper.html.template");
+  const template = fs.readFileSync(templateFile, "utf8");
+  
+  html = template.replace("<!-- SVG -->", svg);
+  html = html.replace("<!-- TIME -->", `${timeText}  •  ${refId}`);
+  html = html.replace("/--UUID--/", fileId);
+  
+  const htmlFile = path.join(ARTEFACTS_DIR, `${fileId}.html`);
+  fs.writeFileSync(htmlFile, html);
+  return htmlFile;
+}
 
 async function processSupportedDocuments(encodedDocs, onDone) {
   if (encodedDocs && !docSelected) {
@@ -88,7 +108,6 @@ async function runDiscovery(participantId, options) {
     }
   };
 
-  clearScreen(`Node42 CLI v${pkg.version}\n`);
   const stopSpinner = startSpinner();
 
   const url = `${API_URL}/${EP_DISCOVER}?output=${output}&format=${format}`;
@@ -153,7 +172,8 @@ async function runDiscovery(participantId, options) {
     const file = path.join(ARTEFACTS_DIR, `${fileName}`);
     fs.writeFileSync(file, svg);
 
-    const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`;
+    const htmlFile = wrapSvg(fileId, refId, svg);
+    const link = `\u001B]8;;file://${htmlFile}\u0007Open\u001B]8;;\u0007`;
 
     console.log(`${C.BOLD}Discovery completed${C.RESET}`);
     console.log(`PID      : ${participantId}`);

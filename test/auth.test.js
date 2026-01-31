@@ -30,7 +30,7 @@ describe("auth", () => {
       utils = require("../src/utils");
       user = require("../src/user");
       
-      sinon.stub(utils, "clearScreen");
+      //sinon.stub(utils, "writeHeader");
       sinon.stub(utils, "ask")
         .onFirstCall().resolves("user")
         .onSecondCall().resolves("secret");
