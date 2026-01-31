@@ -2,6 +2,7 @@ const fs = require("fs");
 const inquirer = require("inquirer");
 const readline = require("readline");
 const config = require("./config");
+const pkg = require("../package.json");
 const db = require("./db");
 const C = require("./colors");
 
@@ -54,7 +55,8 @@ function startSpinner(text = "Working") {
   let i = 0;
 
   const timer = setInterval(() => {
-    process.stdout.write("\r[" + frames[i++ % frames.length] + "] " + text);
+    const frame = frames[i++ % frames.length];
+    process.stdout.write(`\r[${C.RED_BOLD}${frame}${C.RESET}] ${text}`);
   }, 120);
 
   return () => {
@@ -103,6 +105,10 @@ function getShortId(id) {
   return id.slice(0, 8);
 }
 
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function createAppDirs(force=false) {
   fs.mkdirSync(config.NODE42_DIR, { recursive: true });
   fs.mkdirSync(config.ARTEFACTS_DIR, { recursive: true });
@@ -130,14 +136,23 @@ function cleanAppDirs(options) {
     all
   } = options;
 
+  if (Object.keys(options).length === 0) {
+    console.log(`${C.RED}Nothing to clean${C.RESET}`);
+    return;
+  }
+
+  clearScreen(`Node42 CLI v${pkg.version}\n`);
+
+  const removed = [];
+
   if ((all || tokens) && fs.existsSync(config.TOKENS_FILE)) {
     fs.unlinkSync(config.TOKENS_FILE);
-    console.log("Tokens removed");
+    removed.push("tokens");
   }
 
   if ((all || dbFlag) && fs.existsSync(config.DATABASE_FILE)) {
     fs.unlinkSync(config.DATABASE_FILE);
-    console.log("Database removed");
+    removed.push("database");
   }
 
   if (all || artefacts) {
@@ -149,8 +164,7 @@ function cleanAppDirs(options) {
       fs.rmSync(config.ARTEFACTS_DIR, { recursive: true, force: true });
       fs.mkdirSync(config.ARTEFACTS_DIR, { recursive: true });
     }
-
-    console.log("Artefacts removed");
+    removed.push("artefacts");
   }
 
   if (all || transactions) {
@@ -162,8 +176,7 @@ function cleanAppDirs(options) {
       fs.rmSync(config.TRANSACTIONS_DIR, { recursive: true, force: true });
       fs.mkdirSync(config.TRANSACTIONS_DIR, { recursive: true });
     }
-
-    console.log("Transactions removed");
+    removed.push("transactions");
   }
 
   if (all || validations) {
@@ -175,10 +188,19 @@ function cleanAppDirs(options) {
       fs.rmSync(config.VALIDATIONS_DIR, { recursive: true, force: true });
       fs.mkdirSync(config.VALIDATIONS_DIR, { recursive: true });
     }
-
-    console.log("Transactions removed");
+    removed.push("validations");
   }
- 
+
+  if (removed.length === 0) {
+    console.log(`${C.RED}Nothing removed${C.RESET}`);
+  } else {
+    console.log(`${C.BOLD}Removed ${removed.length} item(s)${C.RESET}`);
+    for (const r of removed) {
+      console.log(` ${C.RED}• ${r}${C.RESET}`);
+    }
+
+    console.log();
+  }
 }
 
 function buildDocLabel({ scheme, value }) {
@@ -230,4 +252,4 @@ function getArtefactExt(output, format) {
   }
 }
 
-module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, getShortId, createAppDirs, cleanAppDirs, getArtefactExt };
+module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, getShortId, capitalize, createAppDirs, cleanAppDirs, getArtefactExt };

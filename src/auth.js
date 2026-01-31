@@ -5,16 +5,17 @@ const { getUserWithIndex } = require("./user");
 const { clearScreen, ask, startSpinner } = require("./utils");
 
 const db = require("./db");
+const pkg = require("../package.json");
 const C = require("./colors");
 
 
 async function login() {
-  clearScreen("Sign in to Node42");
+  clearScreen(`Node42 CLI v${pkg.version}\n\n${C.BOLD}Sign in to your account${C.RESET}`);
   let user = getUserWithIndex(0);
 
   const username = await ask("Username", user.userMail ?? "");
   const password = await ask("Password", null, true);
-  //console.log(username + ", " + password);
+  console.log();
 
   let stopSpinner = startSpinner();
 
@@ -26,8 +27,7 @@ async function login() {
 
   if (!res.ok) {
     stopSpinner();
-    
-    console.error(`[${res.status}] ${C.RED}Login failed${C.RESET} - Invalid credentials`);
+    handleError({ code: "N42E-10108", message: "Signin failed: Invalid credentials"});
     process.exit(1);
   }
 
@@ -36,7 +36,7 @@ async function login() {
   
   const { accessToken, refreshToken, idToken } = tokens;
   if (!accessToken || !refreshToken || !idToken) {
-    console.error(`${C.RED}Invalid auth response`);
+    handleError({ code: "N42E-6123", message: "Token missing"})
     process.exit(1);
   }
 
@@ -52,7 +52,7 @@ async function login() {
   stopSpinner();
 
   if (!authenticated) {
-    console.error(`${C.RED}Not authenticated${C.RESET}`);
+    handleError({ code: "N42E-10108", message: "Signin failed: Not authenticated"});
     process.exit(1);
   }
 
@@ -69,8 +69,7 @@ function logout() {
 
 function loadTokens() {
   if (!fs.existsSync(TOKENS_FILE)) {
-    console.error(`Tokens missing...`);
-    console.log(`Run: ${C.BLUE}n42 login${C.RESET}\n`);
+    handleError({ code: "N42E-9033", message: "Token missing: You are not signed in"})
     process.exit(1);
   }
   return JSON.parse(fs.readFileSync(TOKENS_FILE, "utf8"));
@@ -78,7 +77,7 @@ function loadTokens() {
 
 async function checkAuth() {
   if (!fs.existsSync(TOKENS_FILE)) {
-    handleError({ code: "N42E-9033", message: "Token missing..."})
+    handleError({ code: "N42E-9033", message: "Token missing: You are not signed in"})
     return false;
   }
 

@@ -85,9 +85,11 @@ n42 history <participantId>
 Example output:
 
 ```bash
+Found 2 artefact(s)
+
 DATE                PID             FILE
-2026-01-30 15:42:18 9915:helger     ~/.node42/artefacts/discovery/b91f83e2.svg
-2026-01-30 15:42:10 9915:helger     ~/.node42/artefacts/discovery/ba1cbc8d.svg
+2026-01-30 16:53:28 9930:de81347... 5e0800fc.svg [Open]
+2026-01-30 16:53:08 9930:de81347... 6eeb73d0.svg [Open]
 ```
 
 #### Available options:

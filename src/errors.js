@@ -1,5 +1,5 @@
 const { WWW_URL } = require("./config");
-
+const C = require("./colors");
 
 function handleError(err) {
   //console.log(err);
@@ -16,9 +16,9 @@ function handleError(err) {
   //console.log(url);
 
   if (message) {
-    console.error(`\r${err.message}\nSee details: ${url}\n`);
+    console.error(`\r${C.RED}${err.message}${C.RESET}\nSee details: ${C.BOLD}${url}${C.RESET}\n`);
   } else {
-    console.error(`\rSee details: ${url}\n`);
+    console.error(`\rSee details: ${C.BOLD}${url}${C.RESET}\n`);
   }
 }
 

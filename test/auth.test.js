@@ -95,7 +95,7 @@ describe("auth", () => {
           // expected
       }
 
-      expect(console.error.calledWithMatch("Login failed")).to.be.true;
+      expect(console.error.calledWithMatch("Signin failed")).to.be.true;
       expect(process.exit.calledWith(1)).to.be.true;
       expect(fs.writeFileSync.called).to.be.false;
     });

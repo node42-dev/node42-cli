@@ -4,7 +4,7 @@ const { Command } = require("commander");
 const { login, logout, checkAuth } = require("./auth");
 const { getUserWithIndex, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
-const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs, getArtefactExt, cleanAppDirs } = require("./utils");
+const { clearScreen, startSpinner, validateEnv, validateId, createAppDirs, capitalize, cleanAppDirs } = require("./utils");
 const { NODE42_DIR, ARTEFACTS_DIR, DEFAULT_OUTPUT, DEFAULT_FORMAT } = require("./config");
 
 createAppDirs(); 
@@ -36,9 +36,8 @@ program
     const dest = path.join(NODE42_DIR, "completion.bash");
     fs.copyFileSync(src, dest);
 
-    console.log(`${C.DIM}Completion script saved to ${dest}${C.RESET}\n`);
-    console.log(`Run this once:`);
-    console.log(`${C.BLUE}source ${dest}${C.RESET}\n`);
+    console.log(`${C.DIM}Completion script saved to ${dest}${C.RESET}`);
+    console.log(`Run: ${C.BOLD}source ${dest}${C.RESET}\n`);
   });
 
 program
@@ -112,8 +111,8 @@ program
     }
 
     clearScreen(`Node42 CLI v${pkg.version}\n`);
-    console.log(`Usage ${C.BOLD}${service}${C.RESET}`);
-    console.log(`${C.DIM}${currentMonth}:${C.RESET} ${C.RED}${usage}${C.RESET}\n`);
+    console.log(`${C.BOLD}${capitalize(service)} usage${C.RESET}`);
+    console.log(` • ${currentMonth}: ${C.RED}${usage}${C.RESET}\n`);
   });
 
 program
