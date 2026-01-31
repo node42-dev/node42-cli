@@ -2,15 +2,14 @@ const fs = require("fs");
 const { NODE42_DIR, TOKENS_FILE, API_URL, EP_SIGNIN, EP_REFRESH, EP_ME } = require("./config");
 const { handleError } = require("./errors");
 const { getUserWithIndex } = require("./user");
-const { clearScreen, ask, startSpinner } = require("./utils");
+const { ask, startSpinner } = require("./utils");
 
 const db = require("./db");
-const pkg = require("../package.json");
 const C = require("./colors");
 
 
 async function login() {
-  clearScreen(`Node42 CLI v${pkg.version}\n\n${C.BOLD}Sign in to your account${C.RESET}`);
+  console.log(`${C.BOLD}Sign in to your account${C.RESET}`);
   let user = getUserWithIndex(0);
 
   const username = await ask("Username", user.userMail ?? "");
@@ -65,6 +64,7 @@ function logout() {
     fs.unlinkSync(TOKENS_FILE);
   }
   db.clear("user");
+  console.log(`${C.RED}Sign out complete${C.RESET}\n`);
 }
 
 function loadTokens() {

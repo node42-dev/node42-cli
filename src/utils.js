@@ -1,16 +1,24 @@
-const fs = require("fs");
+
 const inquirer = require("inquirer");
 const readline = require("readline");
+
+const fs = require("fs");
+const path = require("path");
+
 const config = require("./config");
 const pkg = require("../package.json");
 const db = require("./db");
 const C = require("./colors");
 
 
-function clearScreen(text) {
-  process.stdout.write("\x1Bc");
-  if (text) {
+function writeHeader(text, clearScreen=false) {
+  if (clearScreen) {
+    process.stdout.write("\x1Bc");
+  }
+  if (text && text.length > 0) {
     process.stdout.write(text + "\n");
+  } else {
+     process.stdout.write(`Node42 CLI v${pkg.version}`);
   }
 }
 
@@ -115,6 +123,10 @@ function createAppDirs(force=false) {
   fs.mkdirSync(config.TRANSACTIONS_DIR, { recursive: true });
   fs.mkdirSync(config.VALIDATIONS_DIR, { recursive: true });
 
+  const wrapperSrc = path.join(__dirname, "assets");
+  const wrapperDest = path.join(config.NODE42_DIR, "assets");
+  fs.cpSync(wrapperSrc, wrapperDest, { recursive: true });
+
   if (!fs.existsSync(config.CONFIG_FILE) || force) {
     fs.writeFileSync(
       config.CONFIG_FILE,
@@ -140,8 +152,6 @@ function cleanAppDirs(options) {
     console.log(`${C.RED}Nothing to clean${C.RESET}`);
     return;
   }
-
-  clearScreen(`Node42 CLI v${pkg.version}\n`);
 
   const removed = [];
 
@@ -252,4 +262,4 @@ function getArtefactExt(output, format) {
   }
 }
 
-module.exports = { clearScreen, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, getShortId, capitalize, createAppDirs, cleanAppDirs, getArtefactExt };
+module.exports = { writeHeader, startSpinner, ask, buildDocLabel, promptForDocument, validateEnv, validateId, getShortId, capitalize, createAppDirs, cleanAppDirs, getArtefactExt };
