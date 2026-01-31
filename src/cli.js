@@ -156,15 +156,15 @@ program
     }
 
     if (!artefacts.length) {
-      clearScreen(`Node42 CLI v${pkg.version}`);
+      clearScreen(`Node42 CLI v${pkg.version}\n`);
       const filter = dayFilter !== null ? ` (${dayFilter})` : ``;
-      console.log(`No artefacts found.${filter}`);
+      console.log(`${C.RED}No artefacts found.${C.RESET}${C.DIM}${filter}${C.RESET}\n`);
       return;
     }
 
     // ---- OUTPUT ----
-    clearScreen(`Node42 CLI v${pkg.version}`);
-    console.log(`Found ${C.RED}${artefacts.length}${C.RESET} artefact(s)${filterInfo}\n`);
+    clearScreen(`Node42 CLI v${pkg.version}\n`);
+    console.log(`${C.BOLD}Found ${artefacts.length} artefact(s)${filterInfo}${C.RESET}\n`);
 
     const DATE = "DATE".padEnd(19);
     const PID = "PID".padEnd(15);

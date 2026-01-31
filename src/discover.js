@@ -41,8 +41,7 @@ async function processSupportedDocuments(encodedDocs, onDone) {
       .map(d => ({ ...d, label: buildDocLabel(d) }));
 
     if (docs.length) {
-      console.log(`Discovery completed`);
-      console.log(`Found ${docs.length} supported document type(s)\n`);
+      console.log(`${C.BOLD}Found ${docs.length} supported document type(s)${C.RESET}\n`);
       
       docSelected = await promptForDocument(docs);
 
@@ -157,7 +156,7 @@ async function runDiscovery(participantId, options) {
     const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`;
 
     console.log(`${C.BOLD}Discovery completed${C.RESET}`);
-    console.log(`PID      : ${C.CYAN}${participantId}${C.RESET}`);
+    console.log(`PID      : ${participantId}`);
     console.log(`Artefact : ${fileName} ${C.BLUE}[${link}]${C.RESET}`);
     console.log(`Usage    : ${C.RED}${serviceUsage}${C.RESET} ${C.DIM}(${rateLimit})${C.RESET}\n`);
     return;
@@ -177,7 +176,7 @@ async function runDiscovery(participantId, options) {
     const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`;
 
     console.log(`${C.BOLD}Discovery completed${C.RESET}`);
-    console.log(`PID      : ${C.CYAN}${participantId}${C.RESET}`);
+    console.log(`PID      : ${participantId}`);
     console.log(`Artefact : ${fileName} ${C.BLUE}[${link}]${C.RESET}`);
     console.log(`Usage    : ${C.RED}${serviceUsage}${C.RESET} ${C.DIM}(${rateLimit})${C.RESET}\n`);
     return;
@@ -197,7 +196,7 @@ async function runDiscovery(participantId, options) {
   const link = `\u001B]8;;file://${file}\u0007Open\u001B]8;;\u0007`;
 
   console.log(`${C.BOLD}Discovery completed${C.RESET}`);
-  console.log(`PID      : ${C.CYAN}${participantId}${C.RESET}`);
+  console.log(`PID      : ${participantId}`);
   console.log(`Artefact : ${fileName} ${C.BLUE}[${link}]${C.RESET}`);
   console.log(`Usage    : ${C.RED}${serviceUsage}${C.RESET} ${C.DIM}(${rateLimit})${C.RESET}\n`); 
 }
