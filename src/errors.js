@@ -15,10 +15,12 @@ function handleError(err) {
     : `${WWW_URL}/errors`;
   //console.log(url);
 
+  const link = `\u001B]8;;${url}\u0007View details\u001B]8;;\u0007`;
+
   if (message) {
-    console.error(`\r${C.RED}${err.message}${C.RESET}\nSee details: ${C.BOLD}${url}${C.RESET}\n`);
+    console.error(`\r${C.BOLD}Error: ${code}${C.RESET} ${C.BLUE}[${link}]${C.RESET}\n\n${C.RED}${err.message}${C.RESET}\n`);
   } else {
-    console.error(`\rSee details: ${C.BOLD}${url}${C.RESET}\n`);
+    console.error(`\r${C.BOLD}Error: ${code}${C.RESET} ${C.BLUE}[${url}]${C.RESET}\n\nFor details, see the documentation.\n`);
   }
 }
 

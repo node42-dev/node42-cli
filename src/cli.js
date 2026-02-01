@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { Command } = require("commander");
-const { login, logout, checkAuth } = require("./auth");
+const { login, logout, checkAuth, setApiKey, getApiKey, removeApiKey } = require("./auth");
 const { getUserWithIndex, getUserUsage } = require("./user");
 const { runDiscovery } = require("./discover");
 const { startSpinner, validateEnv, validateId, createAppDirs, capitalize, cleanAppDirs } = require("./utils");
@@ -38,6 +38,42 @@ program
 
     console.log(`${C.DIM}Completion script saved to ${dest}${C.RESET}`);
     console.log(`Run: ${C.BOLD}source ${dest}${C.RESET}\n`);
+  });
+
+program
+  .command("apikey")
+  .description("Manage API key authentication")
+  .option("--set <key>", "Authenticate using an API key")
+  .option("--remove", "Remove stored API key")
+  .action((options) => {
+    const user = getUserWithIndex(0);
+    if (!user) {
+      console.error(`${C.RED}No local user context found${C.RESET}`);
+      process.exit(1);
+    }
+
+    console.log(`${C.BOLD}Node42 Account${C.RESET} (${user.userMail})\n`);
+
+    if (options.set) {
+      setApiKey(user.id, options.set);
+
+      if (getApiKey(user.id) === options.set) {
+        console.log(`${C.GREEN}API key authentication configured${C.RESET}\n`);
+      } else {
+        console.log(`${C.RED}API key configuration failed${C.RESET}\n`);
+      }
+      return;
+    }
+
+    if (options.remove) {
+      const removed = removeApiKey(user.id);
+      console.log(removed ? `${C.RED}API key removed${C.RESET}\n` : `${C.RED}No API key configured${C.RESET}\n`);
+      return;
+    }
+
+    // default: show status
+    const apiKey = getApiKey(user.id);
+    console.log(apiKey ? `${C.RED}API key configured${C.RESET}\n` : `${C.RED}No API key configured${C.RESET}\n`);
   });
 
 program
@@ -78,9 +114,8 @@ program
     
     const user = getUserWithIndex(0);
     const currentMonth = new Date().toISOString().slice(0, 7);
-    console.log(`Node42 Account (CLI v${pkg.version})
+    console.log(`Node42 Account: ${C.BOLD}${user.id}${C.RESET}
     ${C.BOLD}User${C.RESET}
-      ID           : ${C.CYAN}${user.id}${C.RESET}
       Name         : ${user.userName}
       Email        : ${user.userMail}
       Role         : ${user.role}

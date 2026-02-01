@@ -1,4 +1,4 @@
-# Node42 CLI (n42)
+# Node42 CLI
 
 Command-line interface for **eDelivery discovery, diagnostics, and
 validation**, with support for the Peppol network.
@@ -7,7 +7,11 @@ The Node42 CLI is designed for **system integrators, service providers,
 and operators** who need fast, repeatable insight into eDelivery
 routing, SML/SMK, SMP resolution, and Access Point behavior.
 
-------------------------------------------------------------------------
+While Node42's toolset **includes** modules capable of constructing and **sending
+standards-compliant messages**, it is **intended for diagnostics**, validation,
+and testing — not for production message exchange.
+
+
 
 ## Features
 
@@ -128,9 +132,15 @@ Artefacts are stored under:
 
 ## Error Handling
 
-Errors are printed with a clickable reference link:
+Errors are printed with a clickable reference link.
 
-    https://www.node42.dev/errors?code=XXXX
+Example output:
+
+``` bash
+Error: 9031 [View details]
+
+Invalid token: the authorization token provided is invalid
+``` 
 
 ## Security
 
@@ -140,3 +150,8 @@ Errors are printed with a clickable reference link:
 ## License
 
 MIT License
+
+## Author
+
+Alex Olsson \
+Node42
