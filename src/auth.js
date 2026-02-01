@@ -7,10 +7,53 @@ const { ask, startSpinner } = require("./utils");
 const db = require("./db");
 const C = require("./colors");
 
+function setApiKey(userId, key) {
+  if (!key) return;
+  
+  const database = db.load();
+
+  const u = database.user.find(x => x.id === userId);
+  if (!u) return;
+
+  u.apiKey = {
+    "value": key,
+    "createdAt": Date.now()
+  }
+
+  db.save(database);
+}
+
+function getApiKey(userId) {
+  const database = db.load();
+
+  const u = database.user.find(x => x.id === userId);
+  if (!u || !u.apiKey) return null;
+
+  return u.apiKey.value;
+}
+
+function removeApiKey(userId) {
+  const database = db.load();
+
+  const u = database.user.find(x => x.id === userId);
+  if (!u || !u.apiKey) return false;
+
+  delete u.apiKey;
+  db.save(database);
+
+  return true;
+}
 
 async function login() {
   console.log(`${C.BOLD}Sign in to your account${C.RESET}`);
   let user = getUserWithIndex(0);
+
+  const apiKey = getApiKey(user.id);
+  if (apiKey) {
+    console.log(`\n${C.RED}API key authentication is configured.${C.RESET}`);
+    console.log(`Login is not required.\n`);
+    return;
+  }
 
   const username = await ask("Username", user.userMail ?? "");
   const password = await ask("Password", null, true);
@@ -158,21 +201,33 @@ async function refreshSession() {
 }
 
 async function fetchWithAuth(url, options = {}) {
+  const user = getUserWithIndex(0);
+  const apiKey = user ? getApiKey(user.id) : null;
+
   let { accessToken } = loadTokens();
-  if (!accessToken) {
+
+  if (!accessToken && !apiKey) {
     handleError({ code: "N42E-9032" });
-    return;
+    return null;
+  }
+
+  if (apiKey) {
+    console.log(`${C.DIM}Authenticating with API key.${C.RESET}\n`);
   }
 
   const res = await fetch(url, {
     ...options,
     headers: {
       ...(options.headers || {}),
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+      ...(accessToken 
+        ? { Authorization: `Bearer ${accessToken}` } 
+        : apiKey 
+        ? { "X-Api-Key": apiKey } 
+        : {})
     }
   });
 
-  if (res.status !== 401) {
+  if (apiKey || res.status !== 401) {
     return res;
   }
 
@@ -191,4 +246,4 @@ async function fetchWithAuth(url, options = {}) {
   });
 }
 
-module.exports = { login, logout, loadTokens, checkAuth, fetchWithAuth };
+module.exports = { setApiKey,  getApiKey, removeApiKey, login, logout, loadTokens, checkAuth, fetchWithAuth };
