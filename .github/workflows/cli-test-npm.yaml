@@ -1,0 +1,66 @@
+name: CLI Tests on npm Installations
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version of @n42/cli to test (e.g. 0.4.2 or 0.2.42)'
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x, 'lts/*']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # ---- Global install (fresh) ----
+      - name: Global install fresh @n42/cli@${{ inputs.version }}
+        run: |
+          npm install -g @n42/cli@${{ inputs.version }}
+          echo "Installed version:"
+          n42 --version
+          # Run your validation script (assumes it exists in repo)
+          node test/asserts/validate_tests.js || echo "Validation failed - check logs"
+
+      # ---- Global upgrade to latest ----
+      - name: Global upgrade to latest @n42/cli
+        run: |
+          npm install -g @n42/cli
+          echo "Upgraded version:"
+          n42 --version
+          node test/asserts/validate_tests.js || echo "Validation failed after upgrade"
+
+      # ---- Local install (fresh) in isolated dir ----
+      - name: Local install fresh @n42/cli@${{ inputs.version }}
+        run: |
+          mkdir local-fresh && cd local-fresh
+          npm init -y
+          npm install @n42/cli@${{ inputs.version }}
+          echo "Local fresh version:"
+          npx n42 --version
+          node ../test/asserts/validate_tests.js || echo "Local validation failed"
+          cd ..
+
+      # ---- Local upgrade to latest ----
+      - name: Local upgrade to latest @n42/cli
+        run: |
+          mkdir local-upgrade && cd local-upgrade
+          npm init -y
+          npm install @n42/cli@${{ inputs.version }}
+          npm install @n42/cli
+          echo "Local upgraded version:"
+          npx n42 --version
+          node ../test/asserts/validate_tests.js || echo "Local upgrade validation failed"
+          cd ..

@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Node42</title>
+    <link rel="stylesheet" href="../../assets/wrapper-light.css">
+  </head>
+  <body>
+    <div id="app-header">
+      <div class="header-left">
+        <img id="appBtn" src="../../assets/node42-logo.svg" alt="Node42">
+      </div>
+      <div class="header-right"></div>
+    </div>
+    <div id="page">
+      <div id="app-shell">
+        <div id="timeline"></div>
+          <div id="bubble" class="bubble" data-uuid="/--UUID--/">
+            <!-- SVG -->
+            <div class="bubble-time"><!-- TIME --></div>
+            <a id="link" class="bubble-link" title="Download discovery PlantUML diagram (SVG)">
+              <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M5 18V13.5862H6.5V16.5H17.5V13.5862H19V18H5Z" fill="currentColor"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12.75 11.1287L14.5253 9.35331L15.586 10.414L12 14L8.41393 10.414L9.47459 9.35331L11.25 11.1287V6H12.75V11.1287Z" fill="currentColor"/>
+              </svg>Download
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+     <div id="app-menu"  class="app-menu">
+      <div class="app-grid">
+        <div class="app-tile"  title="GitHub" onclick="window.open('https://github.com/node42-dev', '_blank');">
+          <div class="icon-box">
+            <img src="../../assets/github.svg" class="icon-box-svg" alt="GitHub"> 
+          </div>
+          <div class="label">GitHub</div>
+        </div>
+        <div class="app-tile" title="Insomina Collection" onclick="downloadInsomniaCollection();">
+          <div class="icon-box">
+            <img src="../../assets/insomnia.svg" class="icon-box-svg" alt="Insomnia"> 
+          </div>
+          <div class="label">Insomnia</div>
+        </div>
+      </div>
+    </div>
+    <script src="../../assets/discover.js" defer></script>
+    <script src="../../assets/wrapper.js" defer></script>
+  </body>
+</html>

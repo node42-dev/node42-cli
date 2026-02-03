@@ -1,0 +1,36 @@
+name: Dependency audit (informational)
+
+on:
+  schedule:
+    # 14:30 UTC every Wednesday (3)
+    - cron: '30 14 * * 3'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm install
+
+      - name: Run npm audit
+        run: |
+          npm audit --omit=dev --audit-level=critical > audit.txt 2>&1 || echo "AUDIT_FAILED=true" >> $GITHUB_ENV
+
+      - name: Slack notify on audit failure
+        if: env.AUDIT_FAILED == 'true'
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.ALERT_SLACK_GITHUB_ACTIONS }}
+          SLACK_COLOR: "#ff9900"
+          SLACK_USERNAME: Node42 GitHub Bot
+          SLACK_ICON_EMOJI: ":mag:"
+          SLACK_TITLE: "Dependency Audit Alert"
+          SLACK_MESSAGE: "Critical npm dependency issues detected in ${{ github.repository }} on ${{ github.ref }}"

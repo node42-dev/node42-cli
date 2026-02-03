@@ -1,0 +1,63 @@
+{
+  "name": "@n42/cli",
+  "version": "0.3.7",
+  "description": "Node42 CLI – Command-line interface for Peppol eDelivery path discovery, diagnostics, and tooling",
+  "keywords": [
+    "node42",
+    "peppol",
+    "edelivery",
+    "diagnostics",
+    "cli",
+    "api"
+  ],
+  "homepage": "https://github.com/node42-dev/node42-cli",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/node42-dev/node42-cli.git"
+  },
+  "license": "MIT",
+  "author": "Node42 @n42",
+  "type": "commonjs",
+  "bin": {
+    "n42": "dist/n42"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "test": "mocha",
+    "test:coverage": "c8 --reporter=text-summary --reporter=lcov mocha",
+    "test:watch": "mocha --watch",
+    "build": "esbuild src/cli.js --bundle --platform=node --target=node20 --outfile=dist/n42 --format=cjs --minify --banner:js='#!/usr/bin/env node' && mkdir -p dist/assets dist/completion && cp -rf src/assets/* dist/assets && cp -rf src/completion/* dist/completion"
+  },
+  "prepublishOnly": "npm run build",
+  "c8": {
+    "exclude": [
+      "src/assets/**",
+      "src/completion/**",
+      "src/config.js",
+      "src/colors.js"
+    ],
+    "check-coverage": true,
+    "lines": 70,
+    "functions": 70,
+    "branches": 70
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "inquirer": "^8.2.7",
+    "open": "^11.0.0",
+    "xmldom": "^0.6.0",
+    "xpath": "^0.0.34"
+  },
+  "devDependencies": {
+    "c8": "^10.1.3",
+    "chai": "^4.5.0",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
+    "globals": "^17.2.0",
+    "mocha": "^11.3.0",
+    "sinon": "^21.0.1"
+  }
+}

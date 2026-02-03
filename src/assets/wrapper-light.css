@@ -1,0 +1,257 @@
+:root {
+  --bg: transparent;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --border-soft: #f1f5f9;
+  --border-strong: #d1d5db;
+  --text-light: #9ca3af;
+  --text: #111827;
+  --muted: #6b7280;
+  --brand-soft: #eaf3ff;        /* Soft, light blue */
+  --brand: #3f9cff;             /* Main brand color */
+  --brand-strong: #0b3a82;      /* Strong blue for contrast */
+  --brand-hover: #1e6fd0;       /* Slightly darker hover state */
+  --brand-active: #1666c1;      /* Active state */
+  --brand-button: #1d72d2;      /* Darker shade of the brand color */
+  --shadow-soft: 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-form: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+body { 
+    margin: 0; 
+    height: 100vh;
+    background: #fff;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    overflow-y: auto; 
+}
+
+#page {
+    min-height: calc(100vh - 56px);
+    display: flex;
+    justify-content: center;
+    padding-top: 32px;
+}
+
+#app-shell {
+    width: 100%;
+    max-width: 1450px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#app-header {
+  height: 62px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.app-menu {
+  position: fixed;
+  width: 150px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 4px 0 0 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  display: none;
+  z-index: 1000;
+}
+
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  max-width: 260px;
+}
+
+.app-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.label {
+  font-size: 12px;
+  text-align: center;
+  color: #222;
+}
+
+.app-tile:hover .icon-box {
+  background: var(--brand-soft);
+  border: 1px solid var(--brand);
+}
+
+.icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #d0d4d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.icon-box-svg {
+  width: 26px;
+}
+
+.header-left {
+    gap: 16px;
+}
+
+.header-right {
+    gap: 16px;
+}
+
+#appBtn {
+    display: flex;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+}
+
+#timeline {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px 24px 16px;
+    background: var(--bg);
+    min-height: 0; /* for flex scroll containers */
+}
+
+.bubble {
+    position: relative;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 64px;
+    border: 1px solid var(--border);
+}
+.bubble.info {
+    width: 50%;
+}
+
+.bubble svg {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
+}
+
+.bubble-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+.bubble-time {
+    position: absolute;
+    bottom: -24px;
+    left: 10px;
+    font-size: 0.65rem;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.bubble-time:hover {
+    color: var(--text);
+}
+
+.bubble-link {
+    position: absolute;
+    bottom: 14px;
+    right: 21px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.7rem;
+    text-decoration: none;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.bubble-link svg {
+    width: 24px;
+}
+
+.bubble-link:hover {
+    color: var(--text);
+}
+
+.bubble-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border: none;
+    background: #f6f6f6;
+    border-radius: 999px;
+    padding: 4px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.material-icons.bubble-close {
+    font-size: 14px;
+}
+
+.bubble-close:hover {
+    background: #fee2e2;;
+    color: #991b1b;
+}
+
+.bubble-info {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.bubble-info-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.bubble-info-icon.error {
+    color: #ef4444;
+}
+
+.bubble-info-icon.warning {
+    color: #f59e0b;
+}
+
+.bubble-info-icon.info {
+    color: #1f7fe5;
+}
+
+.bubble-info-header {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.bubble-info-body {
+    font-size: 0.9rem;
+    line-height: 1.3;
+}
+
+.bubble-info-body a {
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.bubble-info-body a:hover {
+    color: var(--brand-active);
+    font-weight: 600;
+    text-decoration: none;
+}
