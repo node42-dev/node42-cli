@@ -115,6 +115,14 @@ n42 discover peppol <participantId>
 - **--reverse-lookup**         Enable reverse lookup
 - **--probe-endpoints**        Probe resolved endpoints
 
+Example output:
+```bash
+Discovery completed
+PID      : 0007:node42
+Artefact : 2b40c904.svg [Open Diagram]
+Usage    : 53 (100)
+```
+
 ### History
 
 ``` bash
@@ -127,8 +135,8 @@ Example output:
 Found 2 artefact(s)
 
 DATE                PID             FILE
-2026-01-30 16:53:28 9930:de81347... 5e0800fc.svg [Open]
-2026-01-30 16:53:08 9930:de81347... 6eeb73d0.svg [Open]
+2026-01-30 16:53:28 9930:de81248... 5e0800fc.svg [Open Diagram]
+2026-01-30 16:53:08 9930:de78231... 6eeb73d0.svg [Open Diagram]
 ```
 
 #### Available options:
