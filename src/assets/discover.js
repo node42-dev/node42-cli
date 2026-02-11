@@ -51,6 +51,7 @@ function addDownloadLinkListener() {
 function addSvgClickListener() {
   const bubble = document.getElementById("bubble");
   const svgEl = bubble.querySelector("svg");
+  const refId = bubble.dataset.uuid;
 
   svgEl.addEventListener("click", function (e) {
   const link = e.target.closest("a");
@@ -65,7 +66,8 @@ function addSvgClickListener() {
         if (!url.startsWith("#")) {
           terminal.open({
               url: url,
-              method: "GET"
+              method: "GET",
+              refId
           });
         }
         else {
@@ -79,7 +81,8 @@ function addSvgClickListener() {
               
               terminal.show({
                   command: "trace",
-                  run: true
+                  run: true,
+                  refId
               });
               break;
             }
@@ -89,14 +92,26 @@ function addSvgClickListener() {
               break;
             }
 
-            case "BCARD": {
-              itemUrl = link.getAttribute("data-bcard-url");
+            case "BCARD-DIR": {
+              itemUrl = link.getAttribute("data-bcard-dir-url");
+              break;
+            }
+
+            case "BCARD-SMP": {
+              itemUrl = link.getAttribute("data-bcard-smp-url");
               break;
             }
 
             case "NAPTR": {
               const naptrUrl = link.getAttribute("data-naptr-url");
-              console.log("naptr: " + naptrUrl);
+              //console.log("naptr: " + naptrUrl);
+
+              terminal.show({
+                  command: "parse naptr",
+                  argument: naptrUrl,
+                  run: true,
+                  refId
+              });
               break;
             }
 
@@ -138,7 +153,8 @@ function addSvgClickListener() {
           if (itemUrl && itemUrl.length) {
             terminal.open({
               url: itemUrl,
-              method: "GET"
+              method: "GET",
+              refId
             });
           }
         }
@@ -179,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
   terminal = new Terminal({
       title: "Terminal",
       theme: "light",
-      pkgVersion: "0.3.65"
+      pkgVersion: "0.3.69"
   });
 
   addSvgClickListener();
