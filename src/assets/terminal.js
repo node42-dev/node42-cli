@@ -1,13 +1,15 @@
 class Terminal {
   constructor(opts = {}) {
     this.opts = {
-      title: "Request",
+      title: "Terminal",
       ...opts,
     };
 
     this._active = false;
     this._controller = null;
     this._lastFocused = null;
+
+    this._argument = null;
 
     this._history = [];
     this._historyIndex = -1;
@@ -64,6 +66,8 @@ class Terminal {
     this.overlay.classList.remove("hidden");
     this.dialog.classList.remove("hidden");
 
+    this.title.textContent = `Discovery: ${req.refId}`;
+
     this.input.value = `request -X ${req.method} ${req.url}`;
     this.input.focus();
 
@@ -86,7 +90,9 @@ class Terminal {
     this.overlay.classList.remove("hidden");
     this.dialog.classList.remove("hidden");
 
-    this.title.textContent = `Terminal [CMD]: ${input.command}`;
+    this.title.textContent = `Discovery: ${input.refId}`;
+
+    this._argument = input.argument;
 
     this.input.value = `${input.command}`;
     this.input.focus();
@@ -132,6 +138,7 @@ class Terminal {
     const cmd = `$ request ${this._getReqArgs(normalized)}`;
     this._addHistory(cmd)
 
+    this._printLine("");
     this._printColoredLine(cmd, this.colorBlue);
     this._printLine("");
 
@@ -175,14 +182,14 @@ class Terminal {
       if (normalized.body) this._printLine(`> (body ${this._byteLen(normalized.body)} bytes)`);
       this._printLine("");
 
-      this.title.textContent = `Terminal [${normalized.method}]: request`;
+      //this.title.textContent = `Request: ${normalized.method}`;
 
       const res = await fetch(normalized.url, fetchInit);
 
       const dt = (performance.now() - t0);
-      this._printLine(`< HTTP ${res.status} ${res.statusText} (${dt.toFixed(0)} ms)`);
+      this._printColoredLine(`< HTTP ${res.status} ${res.statusText} (${dt.toFixed(0)} ms)`, this.colorBrown);
 
-      res.headers.forEach((v, k) => this._printLine(`< ${k}: ${v}`));
+      res.headers.forEach((v, k) => this._printColoredLine(`< ${k}: ${v}`, this.colorBrown));
       this._printLine("");
 
       const { text, truncated, bytesRead } = await this._readTextWithLimit(res, normalized.maxBytes);
@@ -193,15 +200,22 @@ class Terminal {
       this._printRaw(text);
 
       this._printLine("");
-      this._printLine(`[done]`);
+      this._printColoredLine(`[done]`, this.colorGreen);
+
       this._setBusy(false);
+
       return { status: res.status, headers: res.headers, body: text, truncated };
     } 
     catch (err) {
-      const name = err?.name || "Error";
+      //console.log(err);
+
+      //const name = err?.name || "error";
       const msg = err?.message || String(err);
 
-      this._printLine(`[${name}] ${msg}`);
+      this._printColoredLine(`[error]: ${msg}`, this.colorRed);
+      this._printLine("");
+      this._printLine("Use the arrow keys to reselect the URL, then click the top-right button to open it in a browser tab instead.");
+      
       this._setBusy(false);
        
       return { status: 0, headers: new Headers(), body: "", error: msg };
@@ -297,17 +311,52 @@ class Terminal {
       this._printHelp();
       return;
     }
+
+    if (cmd.startsWith("parse ")) {
+      const cmdParts = cmd.trim().split(/\s+/);
+      if (cmdParts.length < 2) {
+        this._printLine("");
+        this._printColoredLine("[error]: Unknown item.", this.colorRed);
+        return;
+      }
+
+      const item = cmdParts[1].trim();
+      if (item) {
+        switch(item) {
+          case "naptr": {
+              const parts = this._argument.split(".");
+              const hash = parts[0];
+              const scheme = parts[1];
+              const env = parts[2];
+              const smlDomain = parts.slice(3).join(".");
+
+              this._printLine("");
+              this._printColoredLine("$ parse NAPTR domain", this.colorBlue);
+              this._printLine("");
+              
+              this._printColoredLine(`Environment        : ${env === "acc" ? "TEST" : "PROD"}`, this.colorPink);
+              this._printLine(`Participant scheme : ${scheme}`);
+              this._printLine(`Identifier hash    : ${hash}`);
+              this._printLine(`${env === "acc" ? "SMK" : "SML"} domain         : ${smlDomain}`);
+              break;
+          }
+        }
+      }
+      return;
+    }
     
     if (cmd.startsWith("request ")) {
       if (this.runningFromFile) {
         this._addHistory(cmd);
 
+        this._printLine("");
         this._printColoredLine(`$ ${cmd}`, this.colorBlue);
 
         this._printLine("");
         this._printColoredLine("[error]: CORS has blocked this request (the script is running from file://).", this.colorRed);
-        this._printLine("Use the arrow keys to reselect the URL, then click the top-right button to open it in a browser tab instead.");
         this._printLine("");
+
+        this._printLine("Use the arrow keys to reselect the URL, then click the top-right button to open it in a browser tab instead.");
 
         return;
       }
@@ -327,9 +376,13 @@ class Terminal {
       this._addHistory(cmd);
       
       if (discoveryTrace) {
-        this._resetTerminal();
-        this._printHtml(this._jsonHighlight(discoveryTrace));
-      } else {
+        this._printLine("");
+        this._printColoredLine("$ trace", this.colorBlue);
+        this._printLine("");
+        
+        this._printLine(this._jsonHighlight(discoveryTrace));
+      } 
+      else {
         this._printColoredLine("[error]: Discovery trace missing", this.colorRed);
       }
       return;
@@ -584,8 +637,16 @@ class Terminal {
   }
 
   _openUrl() {
-    const url = this.input.value.replace(/^.*?(?=https?:\/\/)/, "")
-    window.open(url, '_blank');
+    if (input.value && this.input.value.length > 0) {
+      const url = this.input.value.replace(/^.*?(?=https?:\/\/)/, "")
+      window.open(url, '_blank');
+    }
+    else {
+      this._printLine("");
+      this._printColoredLine(`[error]: No URL selected`, this.colorRed);
+      this._printLine("");
+      this._printLine("Use the arrow keys to reselect the URL, then click the top-right button to open it in a browser tab instead.");
+    }
   }
 
   _resetTerminal() {
@@ -603,10 +664,10 @@ class Terminal {
     this._printLine("");
 
     this._printLine("Available commands:");
-    this._printLine("  request [-X METHOD] <url>  – send HTTP request to a URL");
-    this._printLine("  trace                   – output discovery trace");
-    this._printLine("  clear                   – clear terminal output");
-    this._printLine("  help                    – show this help text");
+    this._printLine("  request [-X METHOD] &lturl&gt  – send HTTP request to a URL");
+    this._printLine("  trace                      – output discovery trace");
+    this._printLine("  clear                      – clear terminal output");
+    this._printLine("  help                       – show this help text");
     this._printLine("");
 
     this._printLine("Keyboard support:");
@@ -624,7 +685,6 @@ class Terminal {
     this._printLine("Examples:");
     this._printLine("  request https://api.node42.dev/health");
     this._printLine("  request -X POST https://api.node42.dev/health");
-    this._printLine("");
   }
 
   _printLine(s) {
@@ -635,9 +695,7 @@ class Terminal {
 
   _printColoredLine(s, color="#111827") {
     const html = this.term.innerHTML;
-    this.term.innerHTML =
-    `${html}<span style="color:${color};">${s}</span><br>`;
-    
+    this.term.innerHTML = `${html}<span style="color:${color};">${s}</span><br>`;
     this._scrollToBottom();
   }
 
@@ -647,8 +705,24 @@ class Terminal {
   }
 
   _printRaw(s) {
-    const html = s.replace(/\r?\n/g, "<br>");
-    this.term.innerHTML += html;
+    // Detect if this is HTML content
+    const isHtml = /^\s*</.test(s);
+
+    let output;
+
+    if (isHtml) {
+      // Escape HTML so it is shown as text
+      output = s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\r?\n/g, "<br>");
+    } else {
+      // Normal text handling
+      output = s.replace(/\r?\n/g, "<br>");
+    }
+
+    this.term.innerHTML += output;
 
     if (!s.endsWith("\n")) {
       this.term.innerHTML += "<br>";
