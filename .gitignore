@@ -4,6 +4,9 @@ node_modules/
 # Build Output
 dist/
 
+# Local data
+local/
+
 # GitHub
 scripts/
 

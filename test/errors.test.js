@@ -1,61 +1,45 @@
-const { expect } = require("chai");
-const sinon = require("sinon");
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
 
-const config = require("../src/config");
-const { handleError } = require("../src/errors");
+const { handleApiError } = await import('../src/core/error.js');
 
-describe("handleError()", () => {
-  let errorStub;
+describe('handleApiError()', () => {
 
-  beforeEach(() => {
-    sinon.restore();
-    sinon.stub(console, "error");
-    errorStub = sinon.stub(config, "WWW_URL").value("https://example.com");
+  beforeEach((t) => {
+    t.mock.method(console, 'error', () => {});
   });
 
-  afterEach(() => {
-    sinon.restore();
+  afterEach(() => mock.restoreAll());
+
+  it('prints formatted error with code and message', () => {
+    handleApiError({ code: 'N42E-5101', message: 'Rate limit exceeded' });
+
+    const out = String(console.error.mock.calls[0].arguments[0]);
+    assert.ok(out.includes('Error: 5101'));
+    assert.ok(out.includes('Rate limit exceeded'));
+    assert.ok(out.includes('View Details'));
   });
 
-  it("prints formatted error with code and message", () => {
-    handleError({
-      code: "N42E-5101",
-      message: "Rate limit exceeded"
-    });
+  it('prints error without message using documentation fallback', () => {
+    handleApiError({ code: 'N42E-9032' });
 
-    expect(console.error.called).to.be.true;
-    expect(console.error.firstCall.args[0]).to.include("Error: 5101");
-    expect(console.error.firstCall.args[0]).to.include("Rate limit exceeded");
-    expect(console.error.firstCall.args[0]).to.include("View Details");
+    const out = String(console.error.mock.calls[0].arguments[0]);
+    assert.ok(out.includes('Error: 9032'));
+    assert.ok(out.includes('For details, see the documentation'));
   });
 
-  it("prints error without message using documentation fallback", () => {
-    handleError({
-      code: "N42E-9032"
-    });
+  it('handles error without N42E prefix', () => {
+    handleApiError({ code: 'UNKNOWN', message: 'Something failed' });
 
-    expect(console.error.called).to.be.true;
-    expect(console.error.firstCall.args[0]).to.include("Error: 9032");
-    expect(console.error.firstCall.args[0]).to.include("For details, see the documentation");
+    const out = String(console.error.mock.calls[0].arguments[0]);
+    assert.ok(out.includes('Error:'));
+    assert.ok(out.includes('Something failed'));
   });
 
-  it("handles error without N42E prefix", () => {
-    handleError({
-      code: "UNKNOWN",
-      message: "Something failed"
-    });
+  it('handles error without code', () => {
+    handleApiError({ message: 'Generic failure' });
 
-    expect(console.error.called).to.be.true;
-    expect(console.error.firstCall.args[0]).to.include("Error:");
-    expect(console.error.firstCall.args[0]).to.include("Something failed");
-  });
-
-  it("handles error without code", () => {
-    handleError({
-      message: "Generic failure"
-    });
-
-    expect(console.error.called).to.be.true;
-    expect(console.error.firstCall.args[0]).to.include("Generic failure");
+    const out = String(console.error.mock.calls[0].arguments[0]);
+    assert.ok(out.includes('Generic failure'));
   });
 });

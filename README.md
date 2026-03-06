@@ -31,7 +31,7 @@ and testing — not for production message exchange.
 
 The Node42 CLI `n42` is a Node.js-based diagnostic tool designed for fast, deterministic execution.
 
-Core command logic lives in `src/`, with each command implemented as a focused module (e.g. `discover`, `validate`). Shared concerns such as configuration, output formatting, persistence, and utilities are isolated in dedicated helpers.
+Core command logic lives in `src/`, with each command implemented as a focused module (e.g. `discover`, `validate`, `send`). Shared concerns such as configuration, output formatting, persistence, and utilities are isolated in dedicated helpers.
 
 Static assets and shell completions are bundled at build time and distributed with the CLI. Tests mirror the source structure and exercise both command behavior and internal helpers.
 
@@ -84,6 +84,9 @@ Configuration and cached data are stored under `~/.node42`
 │   ├── discovery
 │   ├── transactions
 │   └── validations
+├── certs
+├── schematrons
+├── templates
 ├── assets
 ├── config.json
 ├── db.json
@@ -117,7 +120,7 @@ n42 discover peppol <participantId>
 
 Example output:
 ```bash
-Discovery completed
+Discovery Result
 PID      : 0007:node42
 Artefact : 2b40c904.svg [Open Diagram]
 Usage    : 53 (100)
@@ -177,5 +180,5 @@ MIT License
 
 ## Author
 
-Alex Olsson \
-Node42
+**Alex Olsson** \
+**[Node42](https://www.node42.dev)**

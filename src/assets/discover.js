@@ -93,12 +93,23 @@ function addSvgClickListener() {
             }
 
             case "BCARD-DIR": {
-              itemUrl = link.getAttribute("data-bcard-dir-url");
+              //itemUrl = link.getAttribute("data-bcard-dir-url");
+
+              const trace = discoveryTrace.find(t => t.step === "bcard.dir.response");
+              if (trace && trace.data?.cards?.length) {
+                const card = trace.data.cards[0];
+                terminal.showCard(card); 
+              }       
               break;
             }
 
             case "BCARD-SMP": {
-              itemUrl = link.getAttribute("data-bcard-smp-url");
+              //ite
+              const trace = discoveryTrace.find(t => t.step === "bcard.smp.response");
+              if (trace && trace.data?.cards?.length) {
+                const card = trace.data.cards[0];
+                terminal.showCard(card); 
+              }              
               break;
             }
 

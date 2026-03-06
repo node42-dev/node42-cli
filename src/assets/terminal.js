@@ -6,6 +6,8 @@ class Terminal {
     };
 
     this._active = false;
+    this._cardActive = false;
+
     this._controller = null;
     this._lastFocused = null;
 
@@ -41,6 +43,14 @@ class Terminal {
     this.colorGray="#94a3b8"; 
     this.colorGreen="#4cb56f";
     this.colorRed="#ef4444";
+
+    this.onScroll = this.onScroll.bind(this);
+  }
+
+  onScroll() {
+    if (this._cardActive) {
+      this.closeCard();
+    }
   }
 
   async openAndRun(req) {
@@ -106,6 +116,38 @@ class Terminal {
     document.documentElement.style.overflow = "hidden";
   }
 
+  showCard(card) {
+    if (!this._cardActive) { 
+      const cardHtml = this._createCard(card); 
+      const contEl = document.getElementById("card-container");
+    
+      contEl.insertAdjacentHTML("beforeend", cardHtml);
+      contEl.style.display = "flex";
+      
+      contEl.addEventListener("click", (e) => {
+        this.closeCard();
+      });
+
+      const cardEl = document.getElementById("peppol-card");
+      cardEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+
+      window.addEventListener("scroll", this.onScroll);
+      this._cardActive = true;
+    }
+  }
+
+
+  closeCard() {
+    const contEl = document.getElementById("card-container"); 
+          contEl.style.display = "none";
+          contEl.innerHTML = "";
+
+    window.removeEventListener("scroll", this.onScroll);
+    this._cardActive = false;
+  }
+
   close() {
     if (!this._active) return;
     this._active = false;
@@ -133,7 +175,6 @@ class Terminal {
 
   async httpRequest(req) {
     const normalized = this._normalizeReq(req);
-    this._resetTerminal();
 
     const cmd = `$ request ${this._getReqArgs(normalized)}`;
     this._addHistory(cmd)
@@ -420,6 +461,56 @@ class Terminal {
     }
   }
 
+  _createCard(card) {
+    const websitesHtml = (card.websites || [])
+      .map(url => {
+        const label = url.replace(/^https?:\/\//, "");
+        return `<a href="${url}" target="_blank" rel="noreferrer">${label}</a>`;
+      })
+      .join("");
+
+    const html = `
+    <div id="peppol-card" class="peppol-card" data-country="${card.countryCode || ""}">
+      <div class="pc-head">
+        <div class="pc-flag">
+          <img class="pc-flag-img" src="../../static/assets/flags/${card.countryCode?.toLowerCase()}.svg" alt="${card.countryCode || ""}" />
+        </div>
+
+        <div class="pc-title">
+          <div class="pc-name">${card.name || ""}</div>
+          <div class="pc-meta">
+            <span class="pc-cc">${card.countryCode || ""}</span>
+            ${card.regDate ? `<span class="pc-dot">•</span><span class="pc-reg">Registered ${card.regDate}</span>` : ""}
+            ${card.geoInfo ? `<span class="pc-dot">•</span><span class="pc-geo">${card.geoInfo}</span>` : ""}
+          </div>
+        </div>
+      </div>
+
+      <div class="pc-body">
+        ${websitesHtml ? `
+        <div class="pc-section">
+          <div class="pc-label">Websites</div>
+          <div class="pc-links">
+            ${websitesHtml}
+          </div>
+        </div>
+        ` : ""}
+
+        ${card.additionalInfo ? `
+        <div class="pc-section pc-info">
+          <div class="pc-label">Additional info</div>
+          <div class="pc-additional">
+            ${card.additionalInfo}
+          </div>
+        </div>
+        ` : ""}
+      </div>
+    </div>
+    `;
+
+    return html;
+  }
+
   _ensureDom() {
     if (this.overlay) return;
 
@@ -592,7 +683,9 @@ class Terminal {
 
     // Close when clicking outside (optional)
     overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) this.close();
+      if (e.target === overlay) {
+        this.close();
+      }
     });
 
     // Key handling + focus trap
@@ -637,7 +730,7 @@ class Terminal {
   }
 
   _openUrl() {
-    if (input.value && this.input.value.length > 0) {
+    if (this.input.value && this.input.value.length > 0) {
       const url = this.input.value.replace(/^.*?(?=https?:\/\/)/, "")
       window.open(url, '_blank');
     }

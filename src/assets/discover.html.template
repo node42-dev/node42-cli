@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Node42</title>
     <link rel="stylesheet" href="../../assets/wrapper-light.css">
+    <link id="card-style" rel="stylesheet" href="../../assets/cards-light.css">
     <link id="terminal-style" rel="stylesheet" href="../../assets/terminal-light.css">
   </head>
   <body>

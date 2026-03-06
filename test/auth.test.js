@@ -1,103 +1,133 @@
-const { expect } = require("chai");
-const sinon = require("sinon");
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const db = require("../src/db");
+import { describe, it, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import fs     from 'fs';
+import path   from 'path';
+import os     from 'os';
+import esmock from 'esmock';
 
-const TEST_DB = path.join(os.tmpdir(), "test-db.json");
+const TEST_DB = path.join(os.tmpdir(), 'test-db.json');
 
-describe("auth", () => {
-  describe("login()", () => {
-    let login;
-    let utils;
-    let auth;
-    let user;
+describe('auth', () => {
+  describe('login()', () => {
 
     beforeEach(() => {
-      sinon.restore();
-
-      global.fetch = sinon.stub();
-     
-      db.setSource(TEST_DB);
       if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
-
-      // fresh require each test
-      delete require.cache[require.resolve("../src/utils")];
-      delete require.cache[require.resolve("../src/user")];
-      delete require.cache[require.resolve("../src/auth")];
-
-      utils = require("../src/utils");
-      user = require("../src/user");
-      
-      //sinon.stub(utils, "writeHeader");
-      sinon.stub(utils, "ask")
-        .onFirstCall().resolves("user")
-        .onSecondCall().resolves("secret");
-
-      sinon.stub(utils, "startSpinner").callsFake(() => () => {});
-      sinon.stub(user, "getUserWithIndex")
-      .withArgs(0)
-      .returns({
-        id: "1",
-        userName: "User",
-        userMail: "user@test.com",
-        role: "user",
-      });
-
-      sinon.spy(fs, "mkdirSync");
-      sinon.spy(fs, "writeFileSync");
-
-      sinon.stub(console, "log");
-      sinon.stub(console, "error");
-      sinon.stub(process, "exit").callsFake(() => {
-          throw new Error("process.exit");
-      });
-
-      auth = require("../src/auth");
-      login = auth.login;
-
-      sinon.stub(auth, "checkAuth").resolves(true);
     });
 
     afterEach(() => {
-      sinon.restore();
       delete global.fetch;
     });
 
-    it("logs in successfully and writes tokens", async () => {
-      // mock fetch
-      global.fetch.resolves({
-        ok: true,
-        json: async () => ({
-          accessToken: "a",
-          refreshToken: "r",
-          idToken: "i"
-        })
+    it('logs in successfully and writes tokens', async () => {
+      const { db } = await import('../src/core/db.js');
+      db.setSource(TEST_DB);
+
+      let writeFileCalls = 0;
+      let logCalls       = [];
+
+      global.fetch = async (url) => {
+        if (url.includes('signin')) return {
+          ok:   true,
+          json: async () => ({ accessToken: 'a', refreshToken: 'r', idToken: 'i' })
+        };
+        // getMe -> /me
+        return {
+          ok:   true,
+          json: async () => ({
+            sub:          '1',
+            userName:     'User',
+            userMail:     'user@test.com',
+            role:         'user',
+            rateLimits:   {},
+            serviceUsage: {}
+          })
+        };
+      };
+
+      const auth = await esmock('../src/identity/auth.js', {
+        '../src/cli/prompt.js': {
+          ask:          async (q) => q.includes('Password') ? 'secret' : 'user',
+          startSpinner: () => () => {}
+        },
+        '../src/identity/user.js': {
+          getUserWithIndex: () => ({ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' })
+        },
+        'fs': {
+          ...fs,
+          mkdirSync:     () => {},
+          writeFileSync: (...args) => { writeFileCalls++; },
+          readFileSync:  (f, enc) => {
+            if (String(f).includes('tokens')) {
+              return JSON.stringify({ accessToken: 'a', refreshToken: 'r', idToken: 'i' });
+            }
+            return fs.readFileSync(f, enc);
+          },
+          existsSync: (f) => {
+            if (String(f).includes('tokens')) return true;
+            return fs.existsSync(f);
+          }
+        }
       });
 
-      await login();
+      const origLog = console.log;
+      console.log   = (...args) => logCalls.push(args);
 
-      expect(fs.writeFileSync.called).to.be.true;
-      expect(console.log.calledWithMatch("Authenticated as")).to.be.true;
+      await auth.login();
+
+      console.log = origLog;
+
+      assert.ok(writeFileCalls > 0);
+      assert.ok(logCalls.some(a => String(a[0]).includes('Logged in as')));
     });
 
-    it("exits on http error", async () => {
-      global.fetch.resolves({
+    it('throws on http error', async () => {
+      const { db } = await import('../src/core/db.js');
+      db.setSource(TEST_DB);
+
+      global.fetch = async () => ({
         ok: false,
         status: 401,
         json: async () => ({})
       });
 
-      try {
-          await login();
-      } catch (e) {
-          // expected
-      }
+      let writeCalls = 0;
 
-      expect(console.error.calledWithMatch("Signin failed")).to.be.true;
-      expect(process.exit.calledWith(1)).to.be.true;
-      expect(fs.writeFileSync.called).to.be.false;
+      const auth = await esmock('../src/identity/auth.js', {
+        '../src/cli/prompt.js': {
+          ask: async (q) => q.includes('Password') ? 'secret' : 'user',
+          startSpinner: () => () => {}
+        },
+        '../src/identity/user.js': {
+          getUserWithIndex: () => ({ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' })
+        },
+        '../src/core/error.js': {
+          N42Error: class extends Error {},
+          N42ErrorCode: {},
+          handleApiError: () => {}
+        },
+        'fs': {
+          ...fs,
+          mkdirSync: () => {},
+          writeFileSync: () => { writeCalls++; },
+          readFileSync:  (f, enc) => {
+            if (String(f).includes('tokens')) {
+              return JSON.stringify({ accessToken: 'a', refreshToken: 'r', idToken: 'i' });
+            }
+            return fs.readFileSync(f, enc);
+          },
+          existsSync: (f) => {
+            if (String(f).includes('tokens')) return true;
+            return fs.existsSync(f);
+          }
+        }
+      });
+
+      await assert.rejects(
+        () => auth.login(),
+        Error
+      );
+
+      assert.equal(writeCalls, 0);
     });
   });
 });

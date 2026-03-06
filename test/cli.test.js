@@ -1,83 +1,123 @@
-const { expect } = require("chai");
-const sinon = require("sinon");
+import { describe, it } from 'node:test';
+import assert  from 'node:assert/strict';
+import esmock  from 'esmock';
 
-describe("CLI", () => {
-  let login, logout, runDiscovery;
+const baseAuth = {
+  login: async () => {}, logout: async () => {}, getMe: async () => true,
+  fetchWithAuth: async () => {}, setApiKey: () => {}, getApiKey: () => {}, removeApiKey: () => {}
+};
 
-  beforeEach(() => {
-    sinon.restore();
+const baseMocks = {
+  '../src/discover.js':       { runDiscovery: () => {} },
+  '../src/validator.js':      { runValidation: () => {} },
+  '../src/identity/user.js':  { getUserWithIndex: () => ({ id: '1' }), getUserUsage: () => 0 },
+  '../src/cli/paths.js':      { N42_HOME: '/tmp', getUserDiscoveryDir: () => '/tmp', initWorkspace: () => {}, createAppDirs: () => {}, cleanAppDirs: () => {} },
+  '../src/cli/prompt.js':     { validateEnv: () => {}, validateId: () => {} },
+  '../src/core/utils.js':     { capitalize: (s) => s },
+  '../src/core/db.js':        { db: { get: () => [], artefactsByParticipant: () => [] } },
+  '../src/core/error.js':     { handleApiError: () => {},  N42Error: class extends Error {}, N42ErrorCode: {} },
+  '../src/cli/color.js':      { C: { BOLD: '', RESET: '', RED: '', BLUE: '', DIM: '', GREEN: '', CYAN: '', YELLOW: '' }, c: (col, text) => text },
+  '../src/core/constants.js': { APP_NAME: 'n42', DEFAULT_OUTPUT: 'plantuml', DEFAULT_FORMAT: 'svg' }
+};
 
-    // stub process.exit so tests don’t quit
-    sinon.stub(process, "exit").callsFake(() => {
-      throw new Error("process.exit");
-    });
+function makeProgramMock(argv, handlers = {}) {
+  const commands = {};
 
-    // stub handlers
-    login = sinon.stub().resolves();
-    logout = sinon.stub().resolves();
-    runDiscovery = sinon.stub();
+  const makeCmd = (name) => {
+    const cmd = {
+      description: () => cmd,
+      option:      () => cmd,
+      action:      (fn) => { commands[name] = fn; return cmd; },
+      command: (sub) => {
+        const clean = sub.split(' ')[0];
+        return makeCmd(name ? `${name}:${clean}` : clean);
+      }
+    };
+    return cmd;
+  };
 
-    // stub requires BEFORE loading CLI
-    sinon.stub(require("../src/auth"), "login").callsFake(login);
-    sinon.stub(require("../src/auth"), "logout").callsFake(logout);
-    sinon.stub(require("../src/discover"), "runDiscovery").callsFake(runDiscovery);
-  });
+  const program = {
+    name:        () => program,
+    description: () => program,
+    version:     () => program,
+    command:     (name) => makeCmd(name),
+    option:      () => program,
+    parse: (args) => {
+      const cmd  = args[2];
+      const sub  = args[3];
 
-  afterEach(() => {
-    sinon.restore();
-    delete require.cache[require.resolve("../src/cli")];
-  });
+      if (commands[cmd]) {
+        commands[cmd]();
+        return;
+      }
 
-  it("runs login command", async () => {
-    process.argv = ["node", "n42", "login"];
+      const key = `${cmd}:${sub}`;
 
-    require("../src/cli");
+      if (commands[key]) {
+        const id = args[4];
 
-    expect(login.calledOnce).to.be.true;
-  });
+        const envIdx = args.indexOf('--env');
+        const env    = envIdx >= 0 ? args[envIdx + 1] : 'TEST';
 
-  it("runs logout command", async () => {
-    process.argv = ["node", "n42", "logout"];
-
-    require("../src/cli");
-
-    expect(logout.calledOnce).to.be.true;
-  });
-
-  it("runs peppol discovery", () => {
-    process.argv = [
-      "node",
-      "n42",
-      "discover",
-      "peppol",
-      "9915:123456789",
-      "--env",
-      "TEST"
-    ];
-
-    require("../src/cli");
-
-    expect(runDiscovery.calledOnce).to.be.true;
-    expect(runDiscovery.firstCall.args[0]).to.equal("9915:123456789");
-  });
-
-  it("exits on invalid env", () => {
-    process.argv = [
-      "node",
-      "n42",
-      "discover",
-      "peppol",
-      "9915:123456789",
-      "--env",
-      "INVALID"
-    ];
-
-    try {
-      require("../src/cli");
-    } catch (e) {
-      // expected
+        commands[key](id, { env, output: 'json', format: 'json' });
+      }
     }
+  };
 
-    expect(process.exit.called).to.be.true;
+  return { program };
+}
+
+describe('CLI', () => {
+
+  it('runs login command', async () => {
+    let loginCalled = 0;
+    process.argv = ['node', 'n42', 'login'];
+    await esmock.strict('../src/cli.js', {
+      ...baseMocks,
+      '../src/identity/auth.js': { ...baseAuth, login: async () => { loginCalled++; } },
+      'commander':      makeProgramMock(process.argv)
+    });
+    assert.ok(loginCalled > 0);
+  });
+
+  it('runs logout command', async () => {
+    let logoutCalled = 0;
+    process.argv = ['node', 'n42', 'logout'];
+    await esmock.strict('../src/cli.js', {
+      ...baseMocks,
+      '../src/identity/auth.js': { ...baseAuth, logout: async () => { logoutCalled++; } },
+      'commander':      makeProgramMock(process.argv)
+    });
+    assert.ok(logoutCalled > 0);
+  });
+
+  it('runs peppol discovery', async () => {
+    let discoverArgs = null;
+    process.argv = ['node', 'n42', 'discover', 'peppol', '9915:123456789', '--env', 'TEST'];
+    await esmock.strict('../src/cli.js', {
+      ...baseMocks,
+      '../src/identity/auth.js':    baseAuth,
+      '../src/discover.js':{ runDiscovery: (id, opts) => { discoverArgs = [id, opts]; } },
+      'commander':         makeProgramMock(process.argv)
+    });
+    assert.ok(discoverArgs !== null);
+    assert.equal(discoverArgs[0], '9915:123456789');
+  });
+
+  it('exits on invalid env', async () => {
+    let exitCalled = false;
+    process.argv   = ['node', 'n42', 'discover', 'peppol', '9915:123456789', '--env', 'INVALID'];
+    const origExit = process.exit;
+    process.exit   = () => { exitCalled = true; throw new Error('exit'); };
+    try {
+      await esmock.strict('../src/cli.js', {
+        ...baseMocks,
+        '../src/identity/auth.js':  baseAuth,
+        '../src/cli/prompt.js': { ...baseMocks['../src/cli/prompt.js'], validateEnv: (env) => { if (env === 'INVALID') { process.exit(1); } } },
+        'commander':       makeProgramMock(process.argv)
+      });
+    } catch {}
+    process.exit = origExit;
+    assert.ok(exitCalled);
   });
 });

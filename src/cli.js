@@ -1,38 +1,82 @@
-const { Command } = require("commander");
-const { login, logout, checkAuth, setApiKey, getApiKey, removeApiKey } = require("./auth");
-const { getUserWithIndex, getUserUsage } = require("./user");
-const { runDiscovery } = require("./discover");
-const { runValidation } = require("./validator");
-const { startSpinner, validateEnv, validateId, createAppDirs, capitalize, cleanAppDirs } = require("./utils");
-const { NODE42_DIR, ARTEFACTS_DIR, DEFAULT_OUTPUT, DEFAULT_FORMAT } = require("./config");
+/*
+  Author: Alex Olsson
+  Copyright (C) 2026 Node42 (www.node42.dev)
+  Email: a1exnd3r@node42.dev
+  GitHub: https://github.com/node42-dev
+  SPDX-License-Identifier: MIT
+*/
 
-createAppDirs(); 
+import fs   from 'fs';
+import path from 'path';
+import pkg  from '../package.json' with { type: 'json' };
 
-const program = new Command();
-const pkg = require("../package.json");
-const db = require("./db");
-const C = require("./colors");
+import { program }        from 'commander';
+import { runDiscovery }   from './discover.js';
+import { runValidation }  from './validator.js';
+import { db }             from './core/db.js';
+import { Spinner }        from './cli/spinner.js';
+import { C }              from './cli/color.js';
 
-const fs = require("fs");
-const path = require("path");
+import { 
+  validateEnv, 
+  validateId 
+} from './cli/prompt.js'; 
+
+import { 
+  N42_HOME,
+  initWorkspace,
+  getUserDiscoveryDir,
+  cleanAppDirs
+}  from './cli/paths.js'
+
+import { 
+  N42Error,
+  N42ErrorCode 
+} from './core/error.js';
+
+import { 
+  login, 
+  logout, 
+  getMe, 
+  setApiKey, 
+  getApiKey, 
+  removeApiKey 
+} from './identity/auth.js';
+
+import { 
+  getUserWithIndex, 
+  getUserUsage 
+} from './identity/user.js';
+
+import { capitalize } from './core/utils.js';
+
+import { DEFAULT_FORMAT, DEFAULT_OUTPUT } from './core/constants.js';
+
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(import.meta.url.startsWith('file:') 
+  ? fileURLToPath(import.meta.url) 
+  : import.meta.url);
+
+const spinner = new Spinner();
+
+initWorkspace();
 
 program
-  .name("n42")
-  .description("Node42 CLI for eDelivery path discovery and diagnostics")
+  .name('n42')
+  .description('Node42 CLI for eDelivery path discovery and diagnostics')
   .version(pkg.version);
 
 program
-  .command("completion <shell>")
-  .description("Install shell completion")
+  .command('completion <shell>')
+  .description('Install shell completion')
   .action((shell) => {
-
-    if (shell !== "bash") {
+    if (shell !== 'bash') {
       console.error(`${C.RED}Only bash supported${C.RESET}`);
       return;
     }
 
-    const src = path.join(__dirname, "completion/bash.sh");
-    const dest = path.join(NODE42_DIR, "completion.bash");
+    const src  = path.join(__dirname, 'completion/bash.sh');
+    const dest = path.join(N42_HOME, 'completion.bash');
     fs.copyFileSync(src, dest);
 
     console.log(`${C.DIM}Completion script saved to ${dest}${C.RESET}`);
@@ -40,20 +84,28 @@ program
   });
 
 program
-  .command("login")
-  .description("Authenticate using username and password and store tokens locally")
-  .action(login);
+  .command('login')
+  .description('Authenticate using username and password and store tokens locally')
+  .action(async () => {
+    try { await login(); }
+    catch(e) {
+      if (e instanceof N42Error) {
+        console.log(e.pretty());
+        process.exit(1);
+      } 
+    }
+  });
 
 program
-  .command("logout")
-  .description("Terminate user session and delete all local tokens")
+  .command('logout')
+  .description('Terminate user session and delete all local tokens')
   .action(logout);
 
 program
-  .command("apikey")
-  .description("Manage API key authentication")
-  .option("--set <key>", "Authenticate using an API key")
-  .option("--remove", "Remove stored API key")
+  .command('apikey')
+  .description('Manage API key authentication')
+  .option('--set <key>', 'Authenticate using an API key')
+  .option('--remove', 'Remove stored API key')
   .action((options) => {
     const user = getUserWithIndex(0);
     if (!user) {
@@ -65,7 +117,6 @@ program
 
     if (options.set) {
       setApiKey(user.id, options.set);
-
       if (getApiKey(user.id) === options.set) {
         console.log(`${C.GREEN}API key authentication configured${C.RESET}\n`);
       } else {
@@ -80,26 +131,28 @@ program
       return;
     }
 
-    // default: show status
     const apiKey = getApiKey(user.id);
     console.log(apiKey ? `${C.RED}API key configured${C.RESET}\n` : `${C.RED}No API key configured${C.RESET}\n`);
   });
 
 program
-  .command("me")
-  .description("Returns identity and service usage for the authenticated user.")
+  .command('me')
+  .description('Returns identity and service usage for the authenticated user.')
   .action(async () => {
-    const stopSpinner = startSpinner();
-    
-    const authenticated = await checkAuth(); 
-    stopSpinner();
+    spinner.start('Fetching Account Details');
 
+    const authenticated = await getMe();
     if (!authenticated) {
+      spinner.fail('Failed to Fetch Account Details');
       process.exit(1);
     }
-    
-    const user = getUserWithIndex(0);
+
+    spinner.done('Account Details Updated');
+    console.log();
+
+    const user         = getUserWithIndex(0);
     const currentMonth = new Date().toISOString().slice(0, 7);
+
     console.log(`Node42 Account: ${C.BOLD}${user.id}${C.RESET}
     ${C.BOLD}User${C.RESET}
       Name         : ${user.userName}
@@ -119,59 +172,54 @@ program
   });
 
 program
-  .command("usage <service>")
-  .description("Returns service usage for the authenticated user.")
-  .option("-m, --month <yyyy-mm>", "Show usage for a specific month")
+  .command('usage <service>')
+  .description('Returns service usage for the authenticated user.')
+  .option('-m, --month <yyyy-mm>', 'Show usage for a specific month')
   .action((service, options) => {
-    const user = getUserWithIndex(0);
-    const currentMonth = options.month ? options.month : new Date().toISOString().slice(0, 7);
-    let usage = getUserUsage(user.id, service, currentMonth);
-    if (!usage) {
-      usage = 0;
-    }
+    const user         = getUserWithIndex(0);
+    const currentMonth = options.month ?? new Date().toISOString().slice(0, 7);
+    const usage        = getUserUsage(user.id, service, currentMonth) ?? 0;
 
     console.log(`${C.BOLD}${capitalize(service)} usage${C.RESET}`);
     console.log(` • ${currentMonth}: ${C.RED}${usage}${C.RESET}\n`);
   });
 
 program
-  .command("clean")
-  .description("Remove locally stored artefacts and cache")
-  .option("--tokens", "Remove stored authentication tokens")
-  .option("--artefacts", "Remove artefacts")
-  .option("--transactions", "Remove transactions")
-  .option("--validations", "Remove validations")
-  .option("--db", "Remove local database")
-  .option("--all", "Wipe all local data")
-  .action((options)=> {
-      cleanAppDirs(options);
+  .command('clean')
+  .description('Remove locally stored artefacts and cache')
+  .option('--tokens',       'Remove stored authentication tokens')
+  .option('--artefacts',    'Remove artefacts')
+  .option('--discovery',    'Remove discovery')
+  .option('--transactions', 'Remove transactions')
+  .option('--validations',  'Remove validations')
+  .option('--db',           'Remove local database')
+  .option('--all',          'Wipe all local data')
+  .action((options) => {
+    cleanAppDirs(options);
   });
 
 program
-  .command("history [participantId]")
-  .description("Show local history with filtering")
-  .option("--today", "Show only today's artefacts")
-  .option("--day <yyyy-mm-dd>", "Show artefacts for a specific day")
-  .option("--last <n>", "Show only last N results", parseInt)
+  .command('history [participantId]')
+  .description('Show local history with filtering')
+  .option('--today',          "Show only today's artefacts")
+  .option('--day <yyyy-mm-dd>', 'Show artefacts for a specific day')
+  .option('--last <n>',       'Show only last N results', parseInt)
   .action((participantId, options) => {
     let artefacts = participantId
       ? db.artefactsByParticipant(participantId)
-      : db.get("artefacts");
+      : db.get('discovery');
 
     artefacts ??= [];
-
-    // newest first
     artefacts.sort((a, b) => b.createdAt - a.createdAt);
 
-    // ---- DATE FILTER ----
-    let dayFilter = null;
-    let filterInfo = "";
+    let dayFilter  = null;
+    let filterInfo = '';
 
     if (options.today) {
-      dayFilter = new Date().toISOString().slice(0, 10);
-      filterInfo = ", created today";
+      dayFilter  = new Date().toISOString().slice(0, 10);
+      filterInfo = ', created today';
     } else if (options.day) {
-      dayFilter = options.day;
+      dayFilter  = options.day;
       filterInfo = `, created ${options.day}`;
     }
 
@@ -181,106 +229,108 @@ program
       );
     }
 
-    // ---- LAST N FILTER ----
     if (options.last && Number.isInteger(options.last) && options.last > 0) {
-      artefacts = artefacts.slice(0, options.last);
+      artefacts  = artefacts.slice(0, options.last);
       filterInfo += `, showing last ${options.last}`;
     }
 
     if (!artefacts.length) {
-      const filter = dayFilter !== null ? ` (${dayFilter})` : ``;
+      const filter = dayFilter !== null ? ` (${dayFilter})` : '';
       console.log(`${C.RED}No artefacts found.${C.RESET}${C.DIM}${filter}${C.RESET}\n`);
       return;
     }
 
-    // ---- OUTPUT ----
     console.log(`${C.BOLD}Found ${artefacts.length} artefact(s)${filterInfo}${C.RESET}\n`);
 
-    const DATE = "DATE".padEnd(19);
-    const PID = "PID".padEnd(15);
-    const FILE = "FILE";
+    const DATE = 'DATE'.padEnd(19);
+    const PID  = 'PID'.padEnd(15);
+    const FILE = 'FILE';
     console.log(`${DATE} ${C.CYAN}${PID}${C.RESET} ${FILE}`);
 
     for (const item of artefacts) {
-      const d = new Date(item.createdAt);
-      const iso = d.toISOString();           // 2026-01-30T16:53:28.123Z
-      const date = iso.slice(0, 10);         // 2026-01-30
-      const time = iso.slice(11, 19);        // 16:53:28
-     
-      let file;
-      let link;
-      if (item.file.includes(".svg")) {
-        file = path.join(ARTEFACTS_DIR, `${item.file.replace(".svg", ".html")}`);
+      const iso  = new Date(item.createdAt).toISOString();
+      const date = iso.slice(0, 10);
+      const time = iso.slice(11, 19);
+
+      let file, link;
+      if (item.file.includes('.svg')) {
+        file = path.join(getUserDiscoveryDir(), `${item.file.replace('.svg', '.html')}`);
         link = `\u001B]8;;file://${file}\u0007Open Diagram\u001B]8;;\u0007`;
       } else {
-        file = path.join(ARTEFACTS_DIR, `${item.file}`);
+        file = path.join(getUserDiscoveryDir(), `${item.file}`);
         link = `\u001B]8;;file://${file}\u0007Open Artefact\u001B]8;;\u0007`;
       }
 
       let pid = item.participantId;
       if (!participantId) {
-        pid = pid.length > 15 ? pid.substring(0, 12) + "..." : pid
+        pid = pid.length > 15 ? pid.substring(0, 12) + '...' : pid;
         console.log(`${date} ${C.DIM}${time}${C.RESET} ${C.CYAN}${pid.padEnd(15)}${C.RESET} ${item.file} ${C.BLUE}[${link}]${C.RESET}`);
       } else {
         console.log(`${date} ${C.DIM}${time}${C.RESET} ${item.file} ${C.BLUE}[${link}]${C.RESET}`);
       }
     }
 
-    console.log("");
+    console.log('');
   });
 
-
 const discover = program
-  .command("discover")
-  .description("Discovery and diagnostic tooling for eDelivery paths");
+  .command('discover')
+  .description('Discovery and diagnostic tooling for eDelivery paths');
 
 discover
-  .command("peppol <participantId>")
-  .description("Resolve and validate the full (Peppol) eDelivery path:\nSML/SMK (BDXR DNS) lookup, SMP resolution, endpoint discovery, and TLS diagnostics.")
-  .option("-e, --env <environment>", "Environment", "TEST")
-  .option("-o, --output <type>", "Result type (json | plantuml)", DEFAULT_OUTPUT)
-  .option("-f, --format <format>", "When output=plantuml (svg | text)", DEFAULT_FORMAT)
-  .option("--force-https", "Force HTTPS endpoints", true)
-  .option("--insecure", "Disable TLS certificate validation", false)
-  .option("--fetch-business-card", "Fetch Peppol business card", false)
-  .option("--reverse-lookup", "Enable reverse lookup", false)
-  .option("--probe-endpoints", "Probe resolved endpoints", false)
+  .command('peppol <participantId>')
+  .description('Resolve and validate the full (Peppol) eDelivery path:\nSML/SMK (BDXR DNS) lookup, SMP resolution, endpoint discovery, and TLS diagnostics.')
+  .option('-e, --env <environment>',    'Environment', 'TEST')
+  .option('-o, --output <type>',        'Result type (json | plantuml)', DEFAULT_OUTPUT)
+  .option('-f, --format <format>',      'When output=plantuml (svg | text)', DEFAULT_FORMAT)
+  .option('--force-https',              'Force HTTPS endpoints', true)
+  .option('--insecure',                 'Disable TLS certificate validation', false)
+  .option('--fetch-business-card',      'Fetch Peppol business card', false)
+  .option('--reverse-lookup',           'Enable reverse lookup', false)
+  .option('--probe-endpoints',          'Probe resolved endpoints', false)
+  .option('--ai [mode]',                'Enable AI interpretation (summary | diagnostic | compliance)')
+  .option('--ai-execution [mode]',      'AI execution mode: sync embeds interpretation, async embeds reference ID')
   .action((participantId, options) => {
-    try { validateEnv(options.env); }
-    catch (e) { 
-      console.error(e.message);
+    try { 
+      validateEnv(options.env);
+      validateId('participant', participantId); 
+      runDiscovery(participantId, options); 
+    }
+    catch(e) {
+      if (e instanceof N42Error) {
+        console.log(e.pretty());
+      }
       process.exit(1);
     }
-
-    try { validateId("participant", participantId); }
-    catch (e) { 
-      console.error(e.message);
-      process.exit(1);
-    }
-
-    runDiscovery(participantId, options);
   });
 
 const validate = program
-  .command("validate")
-  .description("Run document validation using configurable rulesets");
+  .command('validate')
+  .description('Run document validation using configurable rulesets');
 
 validate
-  .command("peppol <document>")
-  .description("Validate a document against Peppol validation rulesets")
-  .option("-r, --ruleset <ruleset>", "Validation ruleset to use (latest | current | legacy)", "current")
-  .option("--location", "Include XPath location for each validation assertion", true)
-  .option("--runtime", "Include execution time in the validation output", false)
+  .command('peppol <document>')
+  .description('Validate a document against Peppol validation rulesets')
+  .option('-r, --ruleset <ruleset>', 'Validation ruleset to use (latest | current | legacy)', 'current')
+  .option('--location',             'Include XPath location for each validation assertion', true)
+  .option('--runtime',              'Include execution time in the validation output', false)
   .action((document, options) => {
-    if (!fs.existsSync(document)) {
-      console.error("Couldn't find a valid document at the selected path");
+    try { 
+      if (!fs.existsSync(document)) {
+        throw new N42Error(N42ErrorCode.DOC_NOT_FOUND, { details: document });
+      }
+
+      const xmlDoc  = fs.readFileSync(document, 'utf8');
+      const docName = path.basename(document);
+
+      runValidation(docName, xmlDoc, options);
+    } 
+    catch(e) {
+      if (e instanceof N42Error) {
+        console.log(e.pretty());
+      }
       process.exit(1);
     }
-
-    const xmlDoc = fs.readFileSync(document, "utf8");
-    const docName = path.basename(document);
-
-    runValidation(docName, xmlDoc, options);
   });
 
 program.parse(process.argv);

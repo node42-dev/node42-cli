@@ -1,38 +1,46 @@
-const fs = require("fs");
-const path = require("path");
+/*
+  Author: Alex Olsson
+  Copyright (C) 2026 Node42 (www.node42.dev)
+  Email: a1exnd3r@node42.dev
+  GitHub: https://github.com/node42-dev
+  SPDX-License-Identifier: MIT
+*/
 
-const config = require("./config");
-let DATABASE_FILE = config.DATABASE_FILE;
+import fs   from 'fs';
+import path from 'path';
+import { getDbFile } from '../cli/paths.js';
+
+
+let databaseFile  = getDbFile();
 let artefactIndex = null;
 
 function setSource(p) {
-  DATABASE_FILE = p;
+  databaseFile = p;
 }
 
 function load() {
-  if (!fs.existsSync(DATABASE_FILE)) return { 
-    user: [],
-    artefacts: [],
+  if (!fs.existsSync(databaseFile)) return { 
+    user:         [],
+    transactions: [],
+    discovery:    [],
   };
-  return JSON.parse(fs.readFileSync(DATABASE_FILE, "utf8"));
+  return JSON.parse(fs.readFileSync(databaseFile, 'utf8'));
 }
 
 function save(database) {
   invalidateArtefactIndex();
 
-  const dir = path.dirname(DATABASE_FILE);
+  const dir = path.dirname(databaseFile);
   fs.mkdirSync(dir, { recursive: true });
 
-  const tmp = DATABASE_FILE + ".tmp";
+  const tmp = databaseFile + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(database, null, 2), 'utf8');
 
-  // always write tmp
-  fs.writeFileSync(tmp, JSON.stringify(database, null, 2), "utf8");
-
-  try { fs.renameSync(tmp, DATABASE_FILE); } 
-  catch (e) {
-    if (e.code === "ENOENT") {
-      // fallback for first write
-      fs.writeFileSync(DATABASE_FILE, JSON.stringify(database, null, 2), "utf8");
+  try { 
+    fs.renameSync(tmp, databaseFile); 
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      fs.writeFileSync(databaseFile, JSON.stringify(database, null, 2), 'utf8');
     } else {
       throw e;
     }
@@ -46,28 +54,24 @@ function insert(collection, item) {
   save(db);
 }
 
-function update(collection, item, key = "id") {
+function update(collection, item, key = 'id') {
   const db = load();
   const idx = db[collection]?.findIndex(x => x[key] === item[key]);
-
   if (idx < 0) return false;
-
   db[collection][idx] = { ...db[collection][idx], ...item };
   save(db);
   return true;
 }
 
-function upsert(collection, item, key = "id") {
+function upsert(collection, item, key = 'id') {
   const db = load();
   db[collection] ??= [];
-
   const idx = db[collection].findIndex(x => x[key] === item[key]);
   if (idx >= 0) {
     db[collection][idx] = { ...db[collection][idx], ...item, updatedAt: Date.now() };
   } else {
     db[collection].push({ ...item, createdAt: Date.now() });
   }
-
   save(db);
 }
 
@@ -84,7 +88,7 @@ function set(collection, key, value) {
   save(db);
 }
 
-function remove(collection, keyValue, key = "id") {
+function remove(collection, keyValue, key = 'id') {
   const db = load();
   db[collection] = (db[collection] ?? []).filter(x => x[key] !== keyValue);
   save(db);
@@ -108,25 +112,21 @@ function find(collection, predicate) {
 
 function indexBy(list, key) {
   const map = Object.create(null);
-
   for (const item of list) {
     const k = item?.[key];
-    if (k == null) continue; // skip null/undefined
+    if (k === null) continue;
     (map[k] ??= []).push(item);
   }
-
   return map;
 }
 
 function indexByFn(list, keyFn) {
   const map = Object.create(null);
-
   for (const item of list) {
     const k = keyFn(item);
-    if (k == null) continue;
+    if (k === null) continue;
     (map[k] ??= []).push(item);
   }
-
   return map;
 }
 
@@ -134,7 +134,7 @@ function indexByMap(list, key) {
   const map = new Map();
   for (const item of list) {
     const k = item?.[key];
-    if (k == null) continue;
+    if (k === null) continue;
     const arr = map.get(k) ?? [];
     arr.push(item);
     map.set(k, arr);
@@ -144,8 +144,8 @@ function indexByMap(list, key) {
 
 function getArtefactIndex() {
   if (!artefactIndex) {
-    const list = get("artefacts");
-    artefactIndex = indexBy(list, "participantId");
+    const list = get('artefacts');
+    artefactIndex = indexBy(list, 'participantId');
   }
   return artefactIndex;
 }
@@ -159,4 +159,23 @@ function artefactsByParticipant(pid) {
   return idx[pid] ?? [];
 }
 
-module.exports = { setSource, load, save, insert, update, upsert, replace, set, remove, clear, get, find, indexBy, indexByFn, indexByMap, artefactsByParticipant };
+export const db = {
+  setSource,
+  load,
+  save,
+  insert,
+  update,
+  upsert,
+  replace,
+  set,
+  remove,
+  clear,
+  get,
+  find,
+  indexBy,
+  indexByFn,
+  indexByMap,
+  getArtefactIndex,
+  invalidateArtefactIndex,
+  artefactsByParticipant
+};
