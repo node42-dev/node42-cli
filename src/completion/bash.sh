@@ -3,7 +3,7 @@ _n42_completions()
   local cur prev words cword
   _init_completion || return
 
-  local commands="login logout apikey me usage clean history discover validate, send"
+  local commands="login logout apikey me usage clean discover validate history edelivery"
 
   if [[ $cword -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "$commands" -- "$cur") )

@@ -6,7 +6,16 @@
   SPDX-License-Identifier: MIT
 */
 
-import { db } from '../core/db.js';
+import { 
+  createDb, 
+  getDbAdapter 
+} from '../db/db.js';
+
+let db = null;
+async function getDb() {
+  if (!db) db = createDb(await getDbAdapter());
+  return db;
+}
 
 const UNKNOWN_USER = {
   id:       'n/a',
@@ -15,29 +24,32 @@ const UNKNOWN_USER = {
   role:     'n/a'
 };
 
-export function getUserWithIndex(index) {
-  const users = db.get('user');
+export async function getUserWithIndex(index) {
+  db = await getDb();
+  const users = await db.get('user');
   return users.length ? users[index] : UNKNOWN_USER;
 }
 
-export function getUserWithId(userId) {
-  const database = db.load();
-  return database.user.find(x => x.id === userId) ?? UNKNOWN_USER;
+export async function getUserWithId(userId) {
+  db = await getDb();
+  const [u] = await db.find('user', x => x.id === userId);
+  return u ?? UNKNOWN_USER;
 }
 
-export function getUserUsage(userId, service, month) {
-  const database = db.load();
-  const u = database.user.find(x => x.id === userId);
+export async function getUserUsage(userId, service, month) {
+  db = await getDb();
+  const [u] = await db.find('user', x => x.id === userId);
   if (!u) return null;
+
   u.serviceUsage[service] ??= {};
   return u.serviceUsage[service][month];
 }
 
-export function setUserUsage(userId, service, month, value) {
-  const database = db.load();
-  const u = database.user.find(x => x.id === userId);
+export async function setUserUsage(userId, service, month, value) {
+  db = await getDb();
+  const [u] = await db.find('user', x => x.id === userId);
   if (!u) return;
-  u.serviceUsage[service] ??= {};
-  u.serviceUsage[service][month] = value;
-  db.save(database);
+
+  const serviceUsage = { ...u.serviceUsage, [service]: { ...u.serviceUsage?.[service], [month]: value } };
+  await db.upsert('user', { ...u, serviceUsage });
 }

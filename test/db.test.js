@@ -4,25 +4,31 @@ import fs   from 'fs';
 import path from 'path';
 import os   from 'os';
 
-const TEST_DB = path.join(os.tmpdir(), 'test-db.json');
+import { createJsonFileAdapter } from '../src/db/adapters/json-db.js';
+import { createDb, indexBy, indexByFn }              from '../src/db/db.js';
 
-const { db } = await import('../src/core/db.js');
+const TEST_DB = path.join(os.tmpdir(), 'n42-test-db.json');
+
+let adapter;
+let db;
 
 describe('db', () => {
 
   beforeEach(() => {
-    db.setSource(TEST_DB);
-    if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
+    if (fs.existsSync(TEST_DB))          fs.unlinkSync(TEST_DB);
+    if (fs.existsSync(TEST_DB + '.tmp')) fs.unlinkSync(TEST_DB + '.tmp');
+    adapter = createJsonFileAdapter(TEST_DB);
+    db      = createDb(adapter);
   });
 
   afterEach(() => {
-    if (fs.existsSync(TEST_DB))         fs.unlinkSync(TEST_DB);
+    if (fs.existsSync(TEST_DB))          fs.unlinkSync(TEST_DB);
     if (fs.existsSync(TEST_DB + '.tmp')) fs.unlinkSync(TEST_DB + '.tmp');
   });
 
   describe('load()', () => {
     it('returns default structure when file missing', () => {
-      const dbObj = db.load();
+      const dbObj = adapter.load();
       assert.ok('user'         in dbObj);
       assert.ok('discovery'    in dbObj);
       assert.ok('transactions' in dbObj);
@@ -53,9 +59,9 @@ describe('db', () => {
       const list = [
         { id: '1', participantId: 'A' },
         { id: '2', participantId: 'A' },
-        { id: '3', participantId: 'B' }
+        { id: '3', participantId: 'B' },
       ];
-      const idx = db.indexBy(list, 'participantId');
+      const idx = indexBy(list, 'participantId');
       assert.equal(idx['A'].length, 2);
       assert.equal(idx['B'].length, 1);
     });
@@ -66,26 +72,26 @@ describe('db', () => {
       const list = [
         { id: 1, date: '2026-01-01' },
         { id: 2, date: '2026-01-01' },
-        { id: 3, date: '2026-01-02' }
+        { id: 3, date: '2026-01-02' },
       ];
-      const idx = db.indexByFn(list, x => x.date);
+      const idx = indexByFn(list, x => x.date);
       assert.equal(idx['2026-01-01'].length, 2);
     });
   });
 
   describe('save()', () => {
     it('writes file atomically', () => {
-      db.save({ artefacts: [] });
+      adapter.save({ artefacts: [] });
       assert.ok(fs.existsSync(TEST_DB));
     });
 
     it("doesn't corrupt original file if rename fails", (t) => {
       const original = { artefacts: [{ id: 1 }] };
-      db.save(original);
+      adapter.save(original);
 
       t.mock.method(fs, 'renameSync', () => { throw new Error('fail'); });
 
-      try { db.save({ artefacts: [{ id: 2 }] }); } catch {}
+      try { adapter.save({ artefacts: [{ id: 2 }] }); } catch {}
 
       const content = JSON.parse(fs.readFileSync(TEST_DB, 'utf8'));
       assert.equal(content.artefacts[0].id, 1);

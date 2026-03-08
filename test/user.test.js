@@ -1,65 +1,83 @@
-import { describe, it, beforeEach, afterEach, mock } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs   from 'fs';
 import path from 'path';
 import os   from 'os';
+import esmock from 'esmock';
+import { createJsonFileAdapter } from '../src/db/adapters/json-db.js';
+import { createDb }              from '../src/db/db.js';
 
-const TEST_DB = path.join(os.tmpdir(), 'test-db-user.json');
+const TEST_DB = path.join(os.tmpdir(), 'n42-user-test-db.json');
 
-const { db }                                          = await import('../src/core/db.js');
-const { getUserWithIndex, getUserWithId, getUserUsage, setUserUsage } = await import('../src/identity/user.js');
+let db;
+let adapter;
 
 describe('user', () => {
 
   beforeEach(() => {
-    db.setSource(TEST_DB);
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
+    adapter = createJsonFileAdapter(TEST_DB);
+    db      = createDb(adapter);
   });
 
   afterEach(() => {
-    mock.restoreAll();
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
   });
 
-  it('returns default user when index does not exist', () => {
-    const u = getUserWithIndex(0);
+  async function getUser() {
+    return esmock('../src/identity/user.js', {
+      '../src/db/db.js':              { createDb: () => db, indexBy: () => {}, indexByFn: () => {} },
+      '../src/db/adapters/json-db.js':{ createJsonFileAdapter: () => adapter },
+    });
+  }
+
+  it('returns default user when index does not exist', async () => {
+    const { getUserWithIndex } = await getUser();
+    const u = await getUserWithIndex(0);
     assert.equal(u.id,       'n/a');
     assert.equal(u.userName, 'n/a');
   });
 
-  it('returns user by index when present', () => {
-    db.save({ user: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
-    const u = getUserWithIndex(0);
+  it('returns user by index when present', async () => {
+    adapter.save({ user: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
+    const { getUserWithIndex } = await getUser();
+    const u = await getUserWithIndex(0);
     assert.equal(u.id, '1');
   });
 
-  it('returns user by id when present', () => {
-    db.save({ user: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
-    const u = getUserWithId('1');
+  it('returns user by id when present', async () => {
+    adapter.save({ user: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
+    const { getUserWithId } = await getUser();
+    const u = await getUserWithId('1');
     assert.equal(u.userMail, 'user@test.com');
   });
 
-  it('returns default user when id is missing', () => {
-    const u = getUserWithId('missing');
+  it('returns default user when id is missing', async () => {
+    const { getUserWithId } = await getUser();
+    const u = await getUserWithId('missing');
     assert.equal(u.id, 'n/a');
   });
 
-  it('returns undefined usage when none exists', () => {
-    db.save({ user: [{ id: '1', serviceUsage: {} }] });
-    const usage = getUserUsage('1', 'discovery', '2026-02');
+  it('returns undefined usage when none exists', async () => {
+    adapter.save({ user: [{ id: '1', serviceUsage: {} }] });
+    const { getUserUsage } = await getUser();
+    const usage = await getUserUsage('1', 'discovery', '2026-02');
     assert.equal(usage, undefined);
   });
 
-  it('sets and retrieves service usage', () => {
-    db.save({ user: [{ id: '1', serviceUsage: {} }] });
-    setUserUsage('1', 'discovery', '2026-02', 5);
-    const usage = getUserUsage('1', 'discovery', '2026-02');
+  it('sets and retrieves service usage', async () => {
+    adapter.save({ user: [{ id: '1', serviceUsage: {} }] });
+    const { getUserUsage, setUserUsage } = await getUser();
+    await setUserUsage('1', 'discovery', '2026-02', 5);
+    const usage = await getUserUsage('1', 'discovery', '2026-02');
     assert.equal(usage, 5);
   });
 
-  it('does nothing when setting usage for missing user', (t) => {
-    const saveSpy = t.mock.method(db, 'save', () => {});
-    setUserUsage('missing', 'discovery', '2026-02', 5);
-    assert.equal(saveSpy.mock.calls.length, 0);
+  it('does nothing when setting usage for missing user', async () => {
+    const { setUserUsage } = await getUser();
+    // should not throw and db should remain empty
+    await setUserUsage('missing', 'discovery', '2026-02', 5);
+    const users = db.get('user');
+    assert.equal(users.length, 0);
   });
 });

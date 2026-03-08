@@ -13,10 +13,9 @@ import { fetchWithAuth }        from './identity/auth.js';
 import { promptForDocument }    from './cli/prompt.js';
 import { Spinner }              from './cli/spinner.js';
 import { C, c }                 from './cli/color.js';
-import { db }                   from './core/db.js';
 
 import { 
-  N42_HOME, 
+  getN42Home,
   getUserDiscoveryDir 
 }  from './cli/paths.js';
 
@@ -43,6 +42,11 @@ import {
   DEFAULT_OUTPUT, 
   EP_DISCOVER 
 } from './core/constants.js';
+
+import { 
+  createDb, 
+  getDbAdapter 
+} from './db/db.js';
 
 const DEFAULT_DISCOVERY_INPUT = {
   env: 'TEST',
@@ -72,6 +76,12 @@ const DEFAULT_DISCOVERY_INPUT = {
   }
 };
 
+let db = null;
+async function getDb() {
+  if (!db) db = createDb(await getDbAdapter());
+  return db;
+}
+
 const spinner = new Spinner();
 
 const discoveryInput = DEFAULT_DISCOVERY_INPUT;
@@ -81,7 +91,7 @@ function wrapSvg(fileId, refId, svg) {
   const now      = new Date();
   const timeText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const templateFile = path.join(N42_HOME, 'assets/discover.html.template');
+  const templateFile = path.join(getN42Home(), 'assets/discover.html.template');
   let html = fs.readFileSync(templateFile, 'utf8');
 
   html = html.replace('<!-- SVG -->',  svg);
@@ -99,7 +109,7 @@ async function processSupportedDocuments(encodedDocs, onDone) {
       .map(d => ({ ...d, label: buildDocLabel(d) }));
 
     if (docs.length) {
-      console.log(`${C.BOLD}Found ${docs.length} supported document type(s)${C.RESET}\n`);
+      console.log(`${c(C.BOLD, 'Found ' + docs.length + ' supported document type(s)')}\n`);
 
       docSelected = await promptForDocument(docs);
 
@@ -155,6 +165,8 @@ ${ai.referenceUsage}
 }
 
 export async function runDiscovery(participantId, options) {
+  db = await getDb();
+
   let {
     env,
     output = DEFAULT_OUTPUT,
@@ -211,8 +223,8 @@ export async function runDiscovery(participantId, options) {
   const encodedDocs  = res.headers.get('X-Node42-Documents');
   const currentMonth = new Date().toISOString().slice(0, 7);
 
-  const user = getUserWithIndex(0);
-  setUserUsage(user.id, 'discovery', currentMonth, serviceUsage);
+  const user = await getUserWithIndex(0);
+  await setUserUsage(user.id, 'discovery', currentMonth, serviceUsage);
 
   const fileId   = getShortId(refId);
   const fileExt  = getArtefactExt(output, format);
@@ -242,9 +254,9 @@ export async function runDiscovery(participantId, options) {
     fs.writeFileSync(file, svg);
 
     const htmlFile = wrapSvg(fileId, refId, svg);
-    const link     = `\u001B]8;;file://${htmlFile}\u0007Open Diagram\u001B]8;;\u0007`;
+    const link     = `\u001B]8;;file://${htmlFile}\u0007Diagram\u001B]8;;\u0007`;
 
-    console.log(`${C.BOLD}Discovery Result${C.RESET}`);
+    console.log(`${c(C.BOLD, 'Discovery Result')}`);
     console.log(`PID      : ${participantId}`);
     console.log(`Artefact : ${fileName} ${c(C.BLUE, `[${link}]`)}`);
     console.log(`Usage    : ${c(C.RED, serviceUsage)} ${c(C.DIM, `(${rateLimit})`)}\n`);
@@ -266,9 +278,9 @@ export async function runDiscovery(participantId, options) {
     const file = path.join(getUserDiscoveryDir(), fileName);
     fs.writeFileSync(file, text);
 
-    const link = `\u001B]8;;file://${file}\u0007Open Diagram\u001B]8;;\u0007`;
+    const link = `\u001B]8;;file://${file}\u0007Diagram\u001B]8;;\u0007`;
 
-    console.log(`${C.BOLD}Discovery Result${C.RESET}`);
+    console.log(`${c(C.BOLD, 'Discovery Result')}`);
     console.log(`PID      : ${participantId}`);
     console.log(`Artefact : ${fileName} ${c(C.BLUE, `[${link}]`)}`);
     console.log(`Usage    : ${c(C.RED, serviceUsage)} ${c(C.DIM, `(${rateLimit})`)}\n`);
@@ -290,9 +302,9 @@ export async function runDiscovery(participantId, options) {
   const file = path.join(getUserDiscoveryDir(), fileName);
   fs.writeFileSync(file, JSON.stringify(json, null, 2));
 
-  const link = `\u001B]8;;file://${file}\u0007Open Diagram\u001B]8;;\u0007`;
+  const link = `\u001B]8;;file://${file}\u0007Diagram\u001B]8;;\u0007`;
 
-  console.log(`${C.BOLD}Discovery Result${C.RESET}`)
+  console.log(`${c(C.BOLD, 'Discovery Result')}`);
   console.log(`PID      : ${participantId}`);
   console.log(`Artefact : ${fileName} ${c(C.BLUE, `[${link}]`)}`);
   console.log(`Usage    : ${c(C.RED, serviceUsage)} ${c(C.DIM, `(${rateLimit})`)}`);

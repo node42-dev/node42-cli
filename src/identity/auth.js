@@ -11,8 +11,7 @@ import fs from 'fs';
 import { getUserWithIndex } from './user.js';
 import { ask }              from '../cli/prompt.js';
 import { Spinner }          from '../cli/spinner.js';
-import { C }                from '../cli/color.js';
-import { db }               from '../core/db.js';
+import { c, C }             from '../cli/color.js';
 
 import { 
   N42Error, 
@@ -21,48 +20,65 @@ import {
 } from '../core/error.js';
 
 import { API_URL, EP_ME, EP_REFRESH, EP_SIGNIN } from '../core/constants.js';
-import { getTokensFile, N42_HOME } from '../cli/paths.js';
+import { 
+  getN42Home,
+  getTokensFile 
+} from '../cli/paths.js';
+
+import { 
+  createDb, 
+  getDbAdapter 
+} from '../db/db.js';
 
 const spinner = new Spinner();
 const tokensFile = getTokensFile();
 
-function setApiKey(userId, key) {
-  if (!key) return;
-  const database = db.load();
-  const u = database.user.find(x => x.id === userId);
-  if (!u) return;
-  u.apiKey = { value: key, createdAt: Date.now() };
-  db.save(database);
+let db = null;
+async function getDb() {
+  if (!db) db = createDb(await getDbAdapter());
+  return db;
 }
 
-function getApiKey(userId) {
-  const database = db.load();
-  const u = database.user.find(x => x.id === userId);
+async function setApiKey(userId, key) {
+  db = await getDb();
+
+  if (!key) return;
+  const [u] = await db.find('user', x => x.id === userId);
+  if (!u) return;
+  u.apiKey = { value: key, createdAt: Date.now() };
+  db.upsert('user', { id: userId, apiKey: { value: key, createdAt: Date.now() } });
+}
+
+async function getApiKey(userId) {
+  db = await getDb();
+
+  const [u] = await db.find('user', x => x.id === userId);
   if (!u || !u.apiKey) return null;
   return u.apiKey.value;
 }
 
-function removeApiKey(userId) {
-  const database = db.load();
-  const u = database.user.find(x => x.id === userId);
+async function removeApiKey(userId) {
+  db = await getDb();
+
+  const [u] = await db.find('user', x => x.id === userId);
   if (!u || !u.apiKey) return false;
-  delete u.apiKey;
-  db.save(database);
+  const { apiKey: _, ...rest } = u;
+  db.upsert('user', rest);
   return true;
 }
 
 async function fetchWithAuth(url, options = {}) {
-  const user   = getUserWithIndex(0);
-  const apiKey = user ? getApiKey(user.id) : null;
+  const user   = await getUserWithIndex(0);
+  const apiKey = user ? await getApiKey(user.id) : null;
 
-  let { accessToken } = loadTokens();
+  let { accessToken } = await loadTokens();
 
   if (!accessToken && !apiKey) {
     throw new N42Error(N42ErrorCode.AUTH_TOKEN_EXPIRED, { details: "Access Token" });
   }
 
   if (apiKey) {
-    console.log(`${C.DIM}Authenticating with API key.${C.RESET}\n`);
+    console.log(`${c(C.DIM, 'Authenticating with API key')}\n`);
   }
 
   const res = await fetch(url, {
@@ -82,7 +98,7 @@ async function fetchWithAuth(url, options = {}) {
   const refreshed = await refreshSession();
   if (!refreshed) return res;
 
-  accessToken = loadTokens().accessToken;
+  accessToken = await loadTokens().accessToken;
   return fetch(url, {
     ...options,
     headers: {
@@ -92,15 +108,17 @@ async function fetchWithAuth(url, options = {}) {
   });
 }
 
-function logout() {
+async function logout() {
+  db = await getDb();
+
   if (fs.existsSync(tokensFile)) {
     fs.unlinkSync(tokensFile);
   }
   db.clear('user');
-  console.log(`${C.RED}Sign out complete${C.RESET}\n`);
+  console.log(`${c(C.RED, 'Sign out complete')}\n`);
 }
 
-function loadTokens() {
+async function loadTokens() {
   if (!fs.existsSync(tokensFile)) {
     throw new N42Error(N42ErrorCode.TOKEN_MISSING, { details: "You are not signed in" });
   }
@@ -129,7 +147,7 @@ async function getMe() {
   const userInfo = await res.json();
 
   if (userInfo) {
-    db.upsert('user', {
+    await db.upsert('user', {
       id:           userInfo.sub,
       userName:     userInfo.userName,
       userMail:     userInfo.userMail,
@@ -144,12 +162,12 @@ async function getMe() {
 }
 
 async function login() {
-  console.log(`${C.BOLD}Sign in to your account${C.RESET}`);
-  let user = getUserWithIndex(0);
+  console.log(`${c(C.BOLD, 'Sign in to your account')}`);
+  let user = await getUserWithIndex(0);
 
-  const apiKey = getApiKey(user.id);
+  const apiKey = await getApiKey(user.id);
   if (apiKey) {
-    console.log(`\n${C.RED}API key authentication is configured.${C.RESET}`);
+    console.log(`\n${c(C.RED, 'API key authentication is configured')}`);
     console.log(`Login is not required.\n`);
     return;
   }
@@ -179,7 +197,7 @@ async function login() {
     throw new N42Error(N42ErrorCode.SIGNIN_FAILED, { details: "Token missing" });
   }
 
-  fs.mkdirSync(N42_HOME, { recursive: true });
+  fs.mkdirSync(getN42Home(), { recursive: true });
   fs.writeFileSync(
     tokensFile,
     JSON.stringify({ accessToken, refreshToken, idToken }, null, 2)
@@ -197,12 +215,12 @@ async function login() {
 
   spinner.done('Account Details Updated');
 
-  user = getUserWithIndex(0);
-  console.log(`\nLogged in as ${user.userName} <${C.BLUE}${user.userMail}${C.RESET}> ${C.DIM}(${user.role})${C.RESET}\n`);
+  user = await getUserWithIndex(0);
+  console.log(`\nLogged in as ${user.userName} <${c(C.BLUE, user.userMail)}> ${c(C.DIM, '(' + user.role + ')')}\n`);
 }
 
 async function refreshSession() {
-  const { refreshToken } = loadTokens();
+  const { refreshToken } = await loadTokens();
   if (!refreshToken) return false;
 
   const res = await fetch(`${API_URL}/${EP_REFRESH}`, {
@@ -217,7 +235,7 @@ async function refreshSession() {
   }
 
   if (data) {
-    fs.mkdirSync(N42_HOME, { recursive: true });
+    fs.mkdirSync(getN42Home(), { recursive: true });
     fs.writeFileSync(
       tokensFile,
       JSON.stringify({

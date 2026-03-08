@@ -17,7 +17,7 @@ import {
 
 import { fetchWithAuth }  from './identity/auth.js';
 import { Spinner }        from './cli/spinner.js';
-import { C }              from './cli/color.js';
+import { c, C }           from './cli/color.js';
 
 import { 
   N42Error,
@@ -26,7 +26,7 @@ import {
 } from './core/error.js';
 
 import { 
-  N42_HOME, 
+  getN42Home, 
   getUserValidationsDir 
 } from './cli/paths.js';
 import { EP_VALIDATE, VALIDATOR_URL } from './core/constants.js';
@@ -89,7 +89,7 @@ function wrapXml(docName, refId, xml) {
   const now      = new Date();
   const timeText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  const templateFile = path.join(N42_HOME, 'assets/validator.html.template');
+  const templateFile = path.join(getN42Home(), 'assets/validator.html.template');
   let html = fs.readFileSync(templateFile, 'utf8');
 
   html = html.replace('<!-- XML -->',  xml);
@@ -214,30 +214,30 @@ function handleValidationReport(artefactFile, report) {
       return acc;
     }, { error: 0, warning: 0 });
 
-  const title = `${C.BOLD}Validation Result${C.RESET}\n\n`;
+  const title = `${c(C.BOLD, 'Validation Result')}\n\n`;
   let message = '';
-  let color   = `${C.BOLD}`;
+  let color   = C.BOLD;
   let tip;
 
   if (counts.error && counts.warning) {
     message = `The validator found ${counts.error} error(s) and ${counts.warning} warnings.`;
-    color   = `${C.RED}`;
+    color   = C.RED;
     tip     = `Review and correct the assertions highlighted,\nthen revalidate before sending.`;
   } else if (counts.error) {
     message = `The validator found ${counts.error} error(s).`;
-    color   = `${C.RED}`;
+    color   = C.RED;
     tip     = `Review and correct the assertions highlighted,\nthen revalidate before sending.`;
   } else if (counts.warning) {
     message = `The validator found ${counts.warning} warning(s).`;
-    color   = `${C.YELLOW}`;
+    color   = C.YELLOW;
     tip     = `Review and correct the assertions highlighted,\nthen revalidate before sending.`;
   } else {
     message = 'The validation completed without any assertions.';
     tip     = 'The document has passed validation and is ready to be sent.';
   }
 
-  const link = `\u001B]8;;file://${artefactFile}\u0007View Report\u001B]8;;\u0007`;
-  console.log(`${title}${color}${message}${C.RESET} ${C.BLUE}[${link}]${C.RESET}\n\n${tip}\n`);
+  const link = `\u001B]8;;file://${artefactFile}\u0007Report\u001B]8;;\u0007`;
+  console.log(`${title}${c(color, message)} [${c(C.BLUE, link)}]\n\n${tip}\n`);
 }
 
 export async function runValidation(docName, xmlDoc, options) {

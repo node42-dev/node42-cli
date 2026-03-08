@@ -5,7 +5,7 @@
 
 # Node42 CLI
 
-Command-line frontend for Node42 **eDelivery path discovery**, diagnostics and validation with support for the Peppol network.
+Command-line frontend for Node42 **end-to-end eDelivery diagnostics** with support for the Peppol network.
 
 The Node42 CLI is a **scriptable command-line client** to the **Node42 WebUI and API**, 
 built for **system integrators**, **service providers**, and **operators** who need fast,
@@ -74,23 +74,26 @@ Check authentication status:
 n42 me
 ```
 
-## Configuration
+## Workspace
 
-Configuration and cached data are stored under `~/.node42`
+Node42 stores runtime data, generated artefacts, certificates, and configuration in the user workspace located at `~/.node42`.
 
 ``` bash
 ~/.node42/
-├── artefacts
-│   ├── discovery
-│   ├── transactions
-│   └── validations
-├── certs
-├── schematrons
-├── templates
-├── assets
-├── config.json
-├── db.json
-└── tokens.json
+      ├── assets/
+      ├── artefacts
+      │   ├── discovery
+      │   ├── transactions
+      │   └── validations
+      ├── certs/                # edelivery
+      ├── schematrons/          # edelivery
+      ├── templates/            # edelivery
+      ├── reports/              # edelivery
+      ├── config.json
+      ├── db.json
+      ├── replay.txt            # edelivery
+      ├── tokens.json
+      └── .env.local
 ```
 
 ## Help
@@ -181,4 +184,4 @@ MIT License
 ## Author
 
 **Alex Olsson** \
-**[Node42](https://www.node42.dev)**
+**[LinkedIn](https://www.linkedin.com/in/alex-o-33165720)**

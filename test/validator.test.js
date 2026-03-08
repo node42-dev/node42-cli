@@ -15,7 +15,7 @@ describe('runValidation()', () => {
       '../src/cli/spinner.js': { Spinner: class { start() {} update() {} done() {} fail() {} } },
       '../src/core/error.js': { handleApiError: () => { errorCalls++; } },
       '../src/core/constants.js': { VALIDATOR_URL: 'https://validator.example.com', EP_VALIDATE: 'validate' },
-      '../src/cli/paths.js':      { getUserValidationsDir: () => '/tmp', N42_HOME: '/tmp' },
+      '../src/cli/paths.js':      { getN42Home: () => '/tmp', getUserValidationsDir: () => '/tmp' },
       'fs': { ...fs, writeFileSync: () => {}, readFileSync: (f, e) => f.includes('template') ? '<html><!-- XML --><!-- TIME -->/--UUID--/</html>' : fs.readFileSync(f, e) }
     });
 

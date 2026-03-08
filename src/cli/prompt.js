@@ -12,7 +12,7 @@ import inquirer from 'inquirer';
 import readline from 'readline';
 import pkg      from '../../package.json' with { type: 'json' };
 
-import { C } from '../cli/color.js';
+import { c, C } from '../cli/color.js';
 
 import { 
   N42Error, 
@@ -38,7 +38,7 @@ export function ask(question, def, hidden = false) {
       terminal: true
     });
 
-    const q = def ? `${question} ${C.DIM}(${def})${C.RESET}: ` : `${question}: `;
+    const q = def ? `${question} ${c(C.DIM, '(' + def + ')')}: ` : `${question}: `;
 
     process.stdin.on('data', chunk => {
       const char = chunk + '';
