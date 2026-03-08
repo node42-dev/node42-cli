@@ -1,4 +1,4 @@
-[![CI](https://github.com/node42-dev/node42-cli/actions/workflows/ci.yaml/badge.svg)](https://github.com/node42-dev/node42-cli/actions/workflows/ci.yaml)
+[![CI](https://github.com/node42-dev/node42-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/node42-dev/node42-cli/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/node42-dev/node42-cli/graph/badge.svg)](https://codecov.io/gh/node42-dev/node42-cli)
 [![npm](https://img.shields.io/npm/v/@n42/cli.svg)](https://www.npmjs.com/package/@n42/cli)
 [![Swagger](https://img.shields.io/badge/Swagger-Discovery%20API-green)](https://node42.dev/docs/discovery)
@@ -179,7 +179,7 @@ Invalid token: the authorization token provided is invalid
 
 ## License
 
-MIT License
+Apache-2.0
 
 ## Author
 

@@ -15,7 +15,7 @@
     "type": "git",
     "url": "git+https://github.com/node42-dev/node42-cli.git"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Node42 @n42",
   "type": "module",
   "bin": {
