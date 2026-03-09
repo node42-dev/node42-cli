@@ -70,36 +70,36 @@ jobs:
       - name: Add npm global bin to PATH
         run: echo "$(npm bin -g)" >> $GITHUB_PATH
 
-      - name: Global install fresh @n42/edelivery@${{ steps.version.outputs.version }}
+      - name: Global install fresh @n42/cli@${{ steps.version.outputs.version }}
         run: |
-          npm install -g @n42/edelivery@${{ steps.version.outputs.version }}
+          npm install -g @n42/cli@${{ steps.version.outputs.version }}
           echo "Installed version:"
           n42 --version
           node test/asserts/validate_tests.js
 
-      - name: Global upgrade to latest @n42/edelivery
+      - name: Global upgrade to latest @n42/cli
         run: |
-          npm install -g @n42/edelivery
+          npm install -g @n42/cli
           echo "Upgraded version:"
           n42 --version
           node test/asserts/validate_tests.js
 
-      - name: Local install fresh @n42/edelivery@${{ steps.version.outputs.version }}
+      - name: Local install fresh @n42/cli@${{ steps.version.outputs.version }}
         run: |
           mkdir local-fresh && cd local-fresh
           npm init -y
-          npm install @n42/edelivery@${{ steps.version.outputs.version }}
+          npm install @n42/cli@${{ steps.version.outputs.version }}
           echo "Local fresh version:"
           npx n42 --version
           node ../test/asserts/validate_tests.js
           cd ..
 
-      - name: Local upgrade to latest @n42/edelivery
+      - name: Local upgrade to latest @n42/cli
         run: |
           mkdir local-upgrade && cd local-upgrade
           npm init -y
-          npm install @n42/edelivery@${{ steps.version.outputs.version }}
-          npm install @n42/edelivery
+          npm install @n42/cli@${{ steps.version.outputs.version }}
+          npm install @n42/cli
           echo "Local upgraded version:"
           npx n42 --version
           node ../test/asserts/validate_tests.js
@@ -128,5 +128,5 @@ jobs:
           SLACK_COLOR: "#ff3333"
           SLACK_USERNAME: Node42 GitHub Bot
           SLACK_ICON_EMOJI: ":warning:"
-          SLACK_TITLE: "Node42 eDelivery Release Failed"
+          SLACK_TITLE: "Node42 CLI Release Failed"
           SLACK_MESSAGE: "Release ${{ github.ref_name }} failed — ${{ github.actor }}"
