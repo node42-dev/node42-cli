@@ -81,11 +81,11 @@ describe('registerCommands', () => {
     const { program, commands } = makeProgram();
     await esmock.strict('../src/commands.js', {
       ...baseMocks,
-      '../src/discover.js': { runDiscovery: (id, opts) => { discoverArgs = [id, opts]; } },
+      '../src/discover.js': { runDiscovery: (context) => { discoverArgs = context; } },
     }).then(m => m.registerCommands(program));
     commands['discover:peppol']('9915:123456789', { env: 'TEST', output: 'json', format: 'json' });
     assert.ok(discoverArgs !== null);
-    assert.equal(discoverArgs[0], '9915:123456789');
+    assert.equal(discoverArgs.participantId, '9915:123456789');
   });
 
   it('registers validate:peppol and calls runValidation', async () => {
@@ -98,12 +98,12 @@ describe('registerCommands', () => {
 
     await esmock.strict('../src/commands.js', {
       ...baseMocks,
-      '../src/validator.js': { runValidation: (name, doc, opts) => { validationArgs = [name, doc, opts]; } },
+      '../src/validator.js': { runValidation: (context) => { validationArgs = context; } },
     }).then(m => m.registerCommands(program));
 
     commands['validate:peppol'](tmpFile, { ruleset: 'current', location: true, runtime: false });
     assert.ok(validationArgs !== null);
-    assert.ok(validationArgs[1].includes('<Invoice/>'));
+    assert.ok(validationArgs.docXml.includes('<Invoice/>'));
   });
 
   it('validate:peppol exits if document not found', async () => {

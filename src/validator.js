@@ -3,7 +3,7 @@
   Copyright (C) 2026 Node42 (www.node42.dev)
   Email: a1exnd3r@node42.dev
   GitHub: https://github.com/node42-dev
-  SPDX-License-Identifier: MIT
+  SPDX-License-Identifier: AGPL-3.0-only
 */
 
 import fs       from 'fs';
@@ -240,8 +240,8 @@ function handleValidationReport(artefactFile, report) {
   console.log(`${title}${c(color, message)} [${c(C.BLUE, link)}]\n\n${tip}\n`);
 }
 
-export async function runValidation(docName, xmlDoc, options) {
-  const { ruleset, location, runtime } = options;
+export async function runValidation(context) {
+  const { ruleset, location, runtime } = context.options;
 
   spinner.start("Validating Document");
 
@@ -255,7 +255,7 @@ export async function runValidation(docName, xmlDoc, options) {
   const res = await fetchWithAuth(url.toString(), {
     method:  'POST',
     headers: { 'Content-Type': 'application/xml' },
-    body:    xmlDoc
+    body:    context.docXml
   });
 
   if (!res.ok) {
@@ -271,6 +271,6 @@ export async function runValidation(docName, xmlDoc, options) {
   const validationReport = await res.json();
   spinner.start("Document Validated");
 
-  const artefactFile = highlightAssertions(docName, validationReport, xmlDoc);
+  const artefactFile = highlightAssertions(context.docName, validationReport, context.docXml);
   handleValidationReport(artefactFile, validationReport);
 }

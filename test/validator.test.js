@@ -22,7 +22,13 @@ describe('runValidation()', () => {
     const origExit = process.exit;
     process.exit   = () => { exitCalls++; throw new Error('exit'); };
 
-    await runValidation('Invoice.xml', '<xml></xml>', { ruleset: 'current' });
+    const context =  {
+      docName: 'Invoice.xml',
+      docXml:  '<xml></xml>',
+      options: { ruleset: 'current' }
+    };
+    
+    await runValidation(context);
 
     process.exit = origExit;
 
@@ -45,7 +51,14 @@ describe('runValidation()', () => {
     const origExit = process.exit;
     process.exit   = (code) => { exitCalls++; throw new Error('exit'); };
 
-    try { await runValidation('Invoice.xml', '<xml></xml>', { ruleset: 'current' }); } catch {}
+    const context =  {
+      docName: 'Invoice.xml',
+      docXml:  '<xml></xml>',
+      options: { ruleset: 'current' }
+    };
+
+    try { await runValidation(context); } 
+    catch {}
 
     process.exit = origExit;
 

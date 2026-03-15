@@ -1,6 +1,6 @@
 {
   "name": "@n42/cli",
-  "version": "0.5.25",
+  "version": "0.5.27",
   "description": "Node42 CLI — command-line interface for end-to-end Peppol eDelivery, diagnostics and tooling",
   "keywords": [
     "node42",
@@ -15,7 +15,7 @@
     "type": "git",
     "url": "git+https://github.com/node42-dev/node42-cli.git"
   },
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-only OR LicenseRef-Commercial",
   "author": "Node42 @n42",
   "type": "module",
   "bin": {
@@ -49,12 +49,18 @@
     "@aws-sdk/lib-dynamodb": "^3"
   },
   "peerDependenciesMeta": {
-    "@aws-sdk/client-dynamodb": { "optional": true },
-    "@aws-sdk/credential-provider-ini": { "optional": true },
-    "@aws-sdk/lib-dynamodb": { "optional": true }
+    "@aws-sdk/client-dynamodb": {
+      "optional": true
+    },
+    "@aws-sdk/credential-provider-ini": {
+      "optional": true
+    },
+    "@aws-sdk/lib-dynamodb": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "@n42/edelivery": "latest",
+    "@n42/edelivery": "^0.1.83",
     "commander": "^11.1.0",
     "dotenv": "^17.3.1",
     "inquirer": "^8.2.7",

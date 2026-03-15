@@ -3,7 +3,7 @@
   Copyright (C) 2026 Node42 (www.node42.dev)
   Email: a1exnd3r@node42.dev
   GitHub: https://github.com/node42-dev
-  SPDX-License-Identifier: MIT
+  SPDX-License-Identifier: AGPL-3.0-only
 */
 
 import fs   from 'fs';
@@ -11,7 +11,6 @@ import path from 'path';
 
 import { fetchWithAuth }        from './identity/auth.js';
 import { promptForDocument }    from './cli/prompt.js';
-import { Spinner }              from './cli/spinner.js';
 import { C, c }                 from './cli/color.js';
 
 import { 
@@ -81,8 +80,6 @@ async function getDb() {
   if (!db) db = createDb(await getDbAdapter());
   return db;
 }
-
-const spinner = new Spinner();
 
 const discoveryInput = DEFAULT_DISCOVERY_INPUT;
 let docSelected = false;
@@ -164,8 +161,10 @@ ${ai.referenceUsage}
 `;
 }
 
-export async function runDiscovery(participantId, options) {
+export async function runDiscovery(context) {
   db = await getDb();
+
+  const participantId = context.participantId;
 
   let {
     env,
@@ -178,7 +177,7 @@ export async function runDiscovery(participantId, options) {
     probeEndpoints,
     ai,
     aiExecution
-  } = options;
+  } = context.options;
 
   discoveryInput.participant.value = participantId;
 
@@ -198,7 +197,7 @@ export async function runDiscovery(participantId, options) {
     options: { output, format, forceHttps, insecure, fetchBusinessCard, reverseLookup, probeEndpoints }
   };
 
-  spinner.start(ai ? 'Running Discovery: with AI analysis (this may take a few seconds longer)...' : "Running Discovery");
+  context.spinner.start(ai ? 'Running Discovery: with AI analysis (this may take a few seconds longer)...' : "Running Discovery");
  
   const url = `${API_URL}/${EP_DISCOVER}?output=${output}&format=${format}`;
   const res = await fetchWithAuth(url, {
@@ -209,7 +208,7 @@ export async function runDiscovery(participantId, options) {
 
   if (!res.ok) {
     const err = await res.json();
-    spinner.fail("Discovery Failed")
+    context.spinner.fail("Discovery Failed")
 
     if (err.code) {
       handleApiError(err);
@@ -230,10 +229,10 @@ export async function runDiscovery(participantId, options) {
   const fileExt  = getArtefactExt(output, format);
   const fileName = `${fileId}.${fileExt}`;
 
-  db.insert('discovery', {
+  db.insert('Discovery', {
     id: refId,
     participantId,
-    options,
+    options: context.options,
     file:      fileName,
     createdAt: Date.now()
   });
@@ -241,14 +240,14 @@ export async function runDiscovery(participantId, options) {
   if (output === 'plantuml' && format === 'svg') {
     const svg = await res.text();
     if (!svg || svg.trim().length === 0) {
-      spinner.fail("Discovery Failed")
+      context.spinner.fail("Discovery Failed")
       throw new N42Error(N42ErrorCode.INVALID_OUTPUT, { details: "Server returned an empty SVG" });
     }
 
-    spinner.done("Discovery completed");
+    context.spinner.done("Discovery completed");
     console.log();
 
-    await processSupportedDocuments(encodedDocs, async () => runDiscovery(participantId, options));
+    await processSupportedDocuments(encodedDocs, async () => runDiscovery(context));
 
     const file     = path.join(getUserDiscoveryDir(), fileName);
     fs.writeFileSync(file, svg);
@@ -266,14 +265,14 @@ export async function runDiscovery(participantId, options) {
   if (output === 'plantuml' && format === 'text') {
     const text = await res.text();
     if (!text || text.trim().length === 0) {
-      spinner.fail("Discovery Failed")
+      context.spinner.fail("Discovery Failed")
       throw new N42Error(N42ErrorCode.DISCOVERY_FAILED, { details: "Server returned an empty response" });
     }
 
-    spinner.done("Discovery completed");
+    context.spinner.done("Discovery completed");
     console.log();
 
-    await processSupportedDocuments(encodedDocs, async () => runDiscovery(participantId, options));
+    await processSupportedDocuments(encodedDocs, async () => runDiscovery(context));
 
     const file = path.join(getUserDiscoveryDir(), fileName);
     fs.writeFileSync(file, text);
@@ -290,14 +289,14 @@ export async function runDiscovery(participantId, options) {
   // default: json
   const json = await res.json();
   if (!json || json.trim().length === 0) {
-    spinner.fail("Discovery Failed")
+    context.spinner.fail("Discovery Failed")
     throw new N42Error(N42ErrorCode.DISCOVERY_FAILED, { details: "Server returned an empty response" });
   }
 
-  spinner.done("Discovery completed");
+  context.spinner.done("Discovery completed");
   console.log();
 
-  await processSupportedDocuments(encodedDocs, async () => runDiscovery(participantId, options));
+  await processSupportedDocuments(encodedDocs, async () => runDiscovery(context));
 
   const file = path.join(getUserDiscoveryDir(), fileName);
   fs.writeFileSync(file, JSON.stringify(json, null, 2));
@@ -310,10 +309,10 @@ export async function runDiscovery(participantId, options) {
   console.log(`Usage    : ${c(C.RED, serviceUsage)} ${c(C.DIM, `(${rateLimit})`)}`);
 
   if (json.ai && json.ai.status === 'OK') {
-    db.insert('discovery', {
+    db.insert('Discovery', {
       id: json.ai.requestId,
       participantId,
-      options,
+      options: context.options,
       file:      `${fileId}.md`,
       createdAt: Date.now()
     });

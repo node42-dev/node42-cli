@@ -4,7 +4,7 @@ import fs   from 'fs';
 import path from 'path';
 import os   from 'os';
 import esmock from 'esmock';
-import { createJsonFileAdapter } from '../src/db/adapters/json-db.js';
+import { createJsonFileAdapter } from '../src/db/adapters/cli.json.db.js';
 import { createDb }              from '../src/db/db.js';
 
 const TEST_DB = path.join(os.tmpdir(), 'n42-user-test-db.json');
@@ -27,7 +27,7 @@ describe('user', () => {
   async function getUser() {
     return esmock('../src/identity/user.js', {
       '../src/db/db.js':              { createDb: () => db, indexBy: () => {}, indexByFn: () => {} },
-      '../src/db/adapters/json-db.js':{ createJsonFileAdapter: () => adapter },
+      '../src/db/adapters/cli.json.db.js':{ createJsonFileAdapter: () => adapter },
     });
   }
 
@@ -39,14 +39,14 @@ describe('user', () => {
   });
 
   it('returns user by index when present', async () => {
-    adapter.save({ user: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
+    adapter.save({ User: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
     const { getUserWithIndex } = await getUser();
     const u = await getUserWithIndex(0);
     assert.equal(u.id, '1');
   });
 
   it('returns user by id when present', async () => {
-    adapter.save({ user: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
+    adapter.save({ User: [{ id: '1', userName: 'User', userMail: 'user@test.com', role: 'user' }] });
     const { getUserWithId } = await getUser();
     const u = await getUserWithId('1');
     assert.equal(u.userMail, 'user@test.com');
@@ -59,14 +59,14 @@ describe('user', () => {
   });
 
   it('returns undefined usage when none exists', async () => {
-    adapter.save({ user: [{ id: '1', serviceUsage: {} }] });
+    adapter.save({ User: [{ id: '1', serviceUsage: {} }] });
     const { getUserUsage } = await getUser();
     const usage = await getUserUsage('1', 'discovery', '2026-02');
     assert.equal(usage, undefined);
   });
 
   it('sets and retrieves service usage', async () => {
-    adapter.save({ user: [{ id: '1', serviceUsage: {} }] });
+    adapter.save({ User: [{ id: '1', serviceUsage: {} }] });
     const { getUserUsage, setUserUsage } = await getUser();
     await setUserUsage('1', 'discovery', '2026-02', 5);
     const usage = await getUserUsage('1', 'discovery', '2026-02');
@@ -77,7 +77,7 @@ describe('user', () => {
     const { setUserUsage } = await getUser();
     // should not throw and db should remain empty
     await setUserUsage('missing', 'discovery', '2026-02', 5);
-    const users = db.get('user');
+    const users = db.getAll('User');
     assert.equal(users.length, 0);
   });
 });

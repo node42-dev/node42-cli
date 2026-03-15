@@ -3,7 +3,7 @@
   Copyright (C) 2026 Node42 (www.node42.dev)
   Email: a1exnd3r@node42.dev
   GitHub: https://github.com/node42-dev
-  SPDX-License-Identifier: MIT
+  SPDX-License-Identifier: AGPL-3.0-only
 */
 
 import { C, c } from '../../cli/color.js';
@@ -34,7 +34,7 @@ export async function createDynamoDbAdapter(client, tableName) {
   catch {
     throw new N42Error(N42ErrorCode.MODULE_NOT_FOUND, { details: "DynamoDB adapter requires AWS SDK — run: npm install @aws-sdk/lib-dynamodb @aws-sdk/client-dynamodb" });
   }
-  const { PutCommand, DeleteCommand, QueryCommand } = commands;
+  const { PutCommand, DeleteCommand, GetCommand, QueryCommand } = commands;
 
   async function send(cmd) {
     try {
@@ -66,7 +66,7 @@ export async function createDynamoDbAdapter(client, tableName) {
   }
 
   async function upsert(collection, item, key = 'id') {
-    const existing = (await get(collection)).find(x => x[key] === item[key]);
+    const existing = (await getAll(collection)).find(x => x[key] === item[key]);
     await send(new PutCommand({
       TableName: tableName,
       Item: existing
@@ -76,7 +76,7 @@ export async function createDynamoDbAdapter(client, tableName) {
   }
 
   async function update(collection, item, key = 'id') {
-    const existing = (await get(collection)).find(x => x[key] === item[key]);
+    const existing = (await getAll(collection)).find(x => x[key] === item[key]);
     if (!existing) return false;
     await send(new PutCommand({
       TableName: tableName,
@@ -110,7 +110,7 @@ export async function createDynamoDbAdapter(client, tableName) {
   }
 
   async function clear(collection) {
-    const items = await get(collection);
+    const items = await getAll(collection);
     await Promise.all(items.map(item =>
       send(new DeleteCommand({
         TableName: tableName,
@@ -118,8 +118,28 @@ export async function createDynamoDbAdapter(client, tableName) {
       }))
     ));
   }
+  
+  async function getOne(collection, key, value) {
+    const result = await send(new GetCommand({
+      TableName: collection,
+      Key: {
+        PK: key,
+        SK: value
+      }
+    }));
+    
+    if (!result.Item) {
+      throw new N42Error(
+        N42ErrorCode.STORAGE_ITEM_NOT_FOUND,
+        { details: `Item not found: ${key}=${value}` },
+        { retryable: false }
+      );
+    }
+  
+    return result.Item;
+  }
 
-  async function get(collection) {
+  async function getAll(collection) {
     const result = await send(new QueryCommand({
       TableName:              tableName,
       KeyConditionExpression: 'PK = :pk',
@@ -129,7 +149,7 @@ export async function createDynamoDbAdapter(client, tableName) {
   }
 
   async function find(collection, predicate) {
-    const items = await get(collection);
+    const items = await getAll(collection);
     return items.filter(predicate);
   }
 
@@ -151,7 +171,8 @@ export async function createDynamoDbAdapter(client, tableName) {
     set,
     remove,
     clear,
-    get,
+    getAll,
+    getOne,
     find,
     artefactsByParticipant,
   };

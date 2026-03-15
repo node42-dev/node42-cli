@@ -4,7 +4,7 @@ import fs     from 'fs';
 import path   from 'path';
 import os     from 'os';
 import esmock from 'esmock';
-import { createJsonFileAdapter } from '../src/db/adapters/json-db.js';
+import { createJsonFileAdapter } from '../src/db/adapters/cli.json.db.js';
 import { createDb }              from '../src/db/db.js';
 
 const TEST_DB = path.join(os.tmpdir(), 'n42-auth-test-db.json');
@@ -48,7 +48,7 @@ describe('auth', () => {
 
       const auth = await esmock('../src/identity/auth.js', {
         '../src/db/db.js': { createDb: () => db, indexBy: () => {}, indexByFn: () => {} },
-        '../src/db/adapters/json-db.js': { createJsonFileAdapter: () => createJsonFileAdapter(TEST_DB) },
+        '../src/db/adapters/cli.json.db.js': { createJsonFileAdapter: () => createJsonFileAdapter(TEST_DB) },
         '../src/cli/prompt.js': {
           ask:          async (q) => q.includes('Password') ? 'secret' : 'user',
           startSpinner: () => () => {}
@@ -87,7 +87,7 @@ describe('auth', () => {
 
       const auth = await esmock('../src/identity/auth.js', {
         '../src/db/db.js': { createDb: () => db, indexBy: () => {}, indexByFn: () => {} },
-        '../src/db/adapters/json-db.js': { createJsonFileAdapter: () => createJsonFileAdapter(TEST_DB) },
+        '../src/db/adapters/cli.json.db.js': { createJsonFileAdapter: () => createJsonFileAdapter(TEST_DB) },
         '../src/cli/prompt.js': {
           ask:          async (q) => q.includes('Password') ? 'secret' : 'user',
           startSpinner: () => () => {}

@@ -4,7 +4,7 @@ import fs   from 'fs';
 import path from 'path';
 import os   from 'os';
 
-import { createJsonFileAdapter } from '../src/db/adapters/json-db.js';
+import { createJsonFileAdapter } from '../src/db/adapters/cli.json.db.js';
 import { createDb, indexBy, indexByFn }              from '../src/db/db.js';
 
 const TEST_DB = path.join(os.tmpdir(), 'n42-test-db.json');
@@ -29,16 +29,16 @@ describe('db', () => {
   describe('load()', () => {
     it('returns default structure when file missing', () => {
       const dbObj = adapter.load();
-      assert.ok('user'         in dbObj);
-      assert.ok('discovery'    in dbObj);
-      assert.ok('transactions' in dbObj);
+      assert.ok('User'         in dbObj);
+      assert.ok('Discovery'    in dbObj);
+      assert.ok('Transactions' in dbObj);
     });
   });
 
   describe('insert() & get()', () => {
     it('inserts and retrieves artefact', () => {
-      db.insert('artefacts', { id: '1', participantId: '0007:123' });
-      const artefacts = db.get('artefacts');
+      db.insert('Discovery', { id: '1', participantId: '0007:123' });
+      const artefacts = db.getAll('Discovery');
       assert.equal(artefacts.length, 1);
       assert.equal(artefacts[0].id, '1');
     });
@@ -46,9 +46,9 @@ describe('db', () => {
 
   describe('find()', () => {
     it('filters by predicate', () => {
-      db.insert('artefacts', { id: '1', participantId: 'A' });
-      db.insert('artefacts', { id: '2', participantId: 'B' });
-      const result = db.find('artefacts', x => x.participantId === 'A');
+      db.insert('Discovery', { id: '1', participantId: 'A' });
+      db.insert('Discovery', { id: '2', participantId: 'B' });
+      const result = db.find('Discovery', x => x.participantId === 'A');
       assert.equal(result.length, 1);
       assert.equal(result[0].id, '1');
     });
@@ -100,27 +100,27 @@ describe('db', () => {
 
   describe('upsert()', () => {
     it('inserts new item if id does not exist', () => {
-      db.upsert('artefacts', { id: '1', name: 'A' });
-      const list = db.get('artefacts');
+      db.upsert('Discovery', { id: '1', name: 'A' });
+      const list = db.getAll('Discovery');
       assert.equal(list.length, 1);
       assert.equal(list[0].name, 'A');
     });
 
     it('updates existing item if id exists', () => {
-      db.upsert('artefacts', { id: '1', name: 'A' });
-      db.upsert('artefacts', { id: '1', name: 'B' });
-      const list = db.get('artefacts');
+      db.upsert('Discovery', { id: '1', name: 'A' });
+      db.upsert('Discovery', { id: '1', name: 'B' });
+      const list = db.getAll('Discovery');
       assert.equal(list.length, 1);
       assert.equal(list[0].name, 'B');
     });
 
     it('adds createdAt on insert and updatedAt on update', () => {
-      db.upsert('artefacts', { id: '1' });
-      let item = db.get('artefacts')[0];
+      db.upsert('Discovery', { id: '1' });
+      let item = db.getAll('Discovery')[0];
       assert.ok(item.createdAt);
 
-      db.upsert('artefacts', { id: '1', value: 2 });
-      item = db.get('artefacts')[0];
+      db.upsert('Discovery', { id: '1', value: 2 });
+      item = db.getAll('Discovery')[0];
       assert.ok(item.updatedAt);
     });
   });

@@ -3,12 +3,15 @@
   Copyright (C) 2026 Node42 (www.node42.dev)
   Email: a1exnd3r@node42.dev
   GitHub: https://github.com/node42-dev
-  SPDX-License-Identifier: MIT
+  SPDX-License-Identifier: AGPL-3.0-only
 */
 
 import fs   from 'fs';
 import path from 'path';
 
+import { N42Timer }          from './cli/timer.js';
+import { N42Context }        from './model/context.js';
+import { N42Environment }    from './model/environment.js';
 import { runDiscovery }   from './discover.js';
 import { runValidation }  from './validator.js';
 import { capitalize }     from './core/utils.js';
@@ -62,6 +65,8 @@ async function getDb() {
   return db;
 }
 
+const runtimeEnv = new N42Environment();
+const timer = new N42Timer();
 
 /**
  * Register CLI commands on the commander program instance.
@@ -214,8 +219,8 @@ export function registerCommands(program) {
 
         try {
             let artefacts = participantId
-            ? await db.artefactsByParticipant('discovery', participantId)
-            : await db.get('discovery');
+            ? await db.artefactsByParticipant('Discovery', participantId)
+            : await db.getAll('Discovery');
 
             artefacts ??= [];
             artefacts.sort((a, b) => b.createdAt - a.createdAt);
@@ -278,7 +283,6 @@ export function registerCommands(program) {
                     console.log(`${date} ${c(C.DIM, time)} ${item.file} [${c(C.BLUE, link)}]`);
                 }
             }
-
             console.log();
         }
         catch(e) {
@@ -304,11 +308,19 @@ export function registerCommands(program) {
     .option('--ai [mode]',                'Enable AI interpretation (summary | diagnostic | compliance)')
     .option('--ai-execution [mode]',      'AI execution mode: sync embeds interpretation, async embeds reference ID')
     .action(async (participantId, options) => {
+        const spinner = new Spinner();
+        const context = new N42Context({
+            spinner,
+            runtimeEnv,
+            participantId,
+            options,
+        });
+
         try { 
             validateEnv(options.env);
             validateId('participant', participantId);
 
-            await runDiscovery(participantId, options); 
+            await runDiscovery(context); 
         }
         catch(e) {
             handleError(e);
@@ -327,15 +339,22 @@ export function registerCommands(program) {
     .option('--location',             'Include XPath location for each validation assertion', true)
     .option('--runtime',              'Include execution time in the validation output', false)
     .action((document, options) => {
+        const spinner = new Spinner();
+        const context = new N42Context({
+            spinner,
+            runtimeEnv,
+            options,
+        });
+        
         try { 
             if (!fs.existsSync(document)) {
                 throw new N42Error(N42ErrorCode.DOC_NOT_FOUND, { details: document });
             }
 
-            const xmlDoc  = fs.readFileSync(document, 'utf8');
-            const docName = path.basename(document);
+            context.docXml  = fs.readFileSync(document, 'utf8');
+            context.docName = path.basename(document);
 
-            runValidation(docName, xmlDoc, options);
+            runValidation(context);
         } 
         catch(e) {
             handleError(e);

@@ -3,7 +3,7 @@
   Copyright (C) 2026 Node42 (www.node42.dev)
   Email: a1exnd3r@node42.dev
   GitHub: https://github.com/node42-dev
-  SPDX-License-Identifier: MIT
+  SPDX-License-Identifier: AGPL-3.0-only
 */
 
 import fs   from 'fs';
@@ -16,9 +16,9 @@ export function createJsonFileAdapter(filePath) {
 
   function load() {
     if (!fs.existsSync(filePath)) return { 
-      user:         [],
-      transactions: [],
-      discovery:    [],
+      User:         [],
+      Transactions: [],
+      Discovery:    [],
     };
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   }
@@ -97,7 +97,7 @@ export function createJsonFileAdapter(filePath) {
     save(db);
   }
   
-  function get(collection) {
+  function getAll(collection) {
     const db = load();
     return db[collection] ?? [];
   }
@@ -109,7 +109,7 @@ export function createJsonFileAdapter(filePath) {
   
   function getArtefactIndex(collection) {
     if (!artefactIndex) {
-      const list = get(collection);
+      const list = getAll(collection);
       artefactIndex = indexBy(list, 'participantId');
     }
     return artefactIndex;
@@ -134,7 +134,7 @@ export function createJsonFileAdapter(filePath) {
     set,
     remove,
     clear,
-    get,
+    getAll,
     find,
     getArtefactIndex,
     invalidateArtefactIndex,

@@ -4,13 +4,13 @@
   Copyright (C) 2026 Node42 (www.node42.dev)
   Email: a1exnd3r@node42.dev
   GitHub: https://github.com/node42-dev
-  SPDX-License-Identifier: MIT
+  SPDX-License-Identifier: AGPL-3.0-only
 */
 
 import { getDbFile } from '../cli/paths.js';
 
-import { createJsonFileAdapter } from '../db/adapters/json-db.js';
-import { createDynamoDbAdapter } from '../db/adapters/dynamo-db.js';
+import { createJsonFileAdapter } from './adapters/cli.json.db.js';
+import { createDynamoDbAdapter } from './adapters/cli.dynamo.db.js';
 
 import { 
   N42Error, 
@@ -23,9 +23,9 @@ function createDefaultAdapter() {
 }
 
 export async function getDbAdapter() {
-  const procEnvDb = process.env.N42_CLI_DB;
+  const procEnvDb = process.env.N42_DB_TABLE;
   switch(procEnvDb) {
-    case 'dynamodb': {
+    case 'cli-aws-dynamo-db': {
       let DynamoDBClient, DynamoDBDocumentClient, fromIni;
 
       try {
@@ -42,17 +42,17 @@ export async function getDbAdapter() {
         const client  = new DynamoDBClient({
           region: process.env.AWS_REGION ?? 'eu-north-1',
           ...(isLocal && {
-            credentials: fromIni({ profile: process.env.AWS_SSO_PROFILE }),
+            credentials: fromIni({ profile: process.env.AWS_PROFILE }),
           }),
         });
-        return createDynamoDbAdapter(DynamoDBDocumentClient.from(client), process.env.N42_CLI_TABLE);
+        return createDynamoDbAdapter(DynamoDBDocumentClient.from(client), process.env.N42_DB_TABLE);
       }
       catch {
         return createDefaultAdapter();
       }
     }
 
-    case 'jsondb': {
+    case 'cli-json-db': {
       return createJsonFileAdapter(getDbFile());
     }
     
@@ -71,7 +71,7 @@ export function createDb(adapter) {
     set:                   (collection, key, value)        => adapter.set(collection, key, value),
     remove:                (collection, keyValue, key)     => adapter.remove(collection, keyValue, key),
     clear:                 (collection)                    => adapter.clear(collection),
-    get:                   (collection)                    => adapter.get(collection),
+    getAll:                (collection)                    => adapter.getAll(collection),
     find:                  (collection, predicate)         => adapter.find(collection, predicate),
     artefactsByParticipant:(collection, pid)               => adapter.artefactsByParticipant(collection, pid),
     invalidateArtefactIndex:()                             => adapter.invalidateArtefactIndex?.(),

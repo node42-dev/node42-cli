@@ -3,7 +3,7 @@
   Copyright (C) 2026 Node42 (www.node42.dev)
   Email: a1exnd3r@node42.dev
   GitHub: https://github.com/node42-dev
-  SPDX-License-Identifier: MIT
+  SPDX-License-Identifier: AGPL-3.0-only
 */
 
 import fs   from 'fs';
@@ -83,7 +83,7 @@ export function initShellCompletion() {
 
 export function initDotEnv(force=false) {
   const src = path.join(getAssetsDir(), 'env.example');
-  const dest = path.join(getUserHomeDir(), '.env.local');
+  const dest = path.join(getUserHomeDir(), '.env.test');
   if (force || !fs.existsSync(dest)) {
     fs.copyFileSync(src, dest);
   }
