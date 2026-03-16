@@ -93,7 +93,7 @@ Node42 stores runtime data, generated artefacts, certificates, and configuration
       ├── db.json
       ├── replay.txt            # edelivery
       ├── tokens.json
-      └── .env.local
+      └── env.test # or .env.prod
 ```
 
 ## Help

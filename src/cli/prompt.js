@@ -83,6 +83,7 @@ export function validateEnv(env) {
   if (!allowedEnvs.includes(env.toUpperCase())) {
     throw new N42Error(N42ErrorCode.INVALID_INPUT, { details: `Invalid environment: ${env}\nAllowed values: ${allowedEnvs.join(', ')}`});
   }
+  return env.toUpperCase();
 }
 
 export function validateId(type, id) {

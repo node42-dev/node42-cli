@@ -46,7 +46,7 @@ async function setApiKey(userId, key) {
   const [u] = await db.find('user', x => x.id === userId);
   if (!u) return;
   u.apiKey = { value: key, createdAt: Date.now() };
-  db.upsert('user', { id: userId, apiKey: { value: key, createdAt: Date.now() } });
+  db.upsert('User', { id: userId, apiKey: { value: key, createdAt: Date.now() } });
 }
 
 async function getApiKey(userId) {
@@ -63,7 +63,7 @@ async function removeApiKey(userId) {
   const [u] = await db.find('user', x => x.id === userId);
   if (!u || !u.apiKey) return false;
   const { apiKey: _, ...rest } = u;
-  db.upsert('user', rest);
+  db.upsert('User', rest);
   return true;
 }
 
@@ -147,7 +147,7 @@ async function getMe() {
   const userInfo = await res.json();
 
   if (userInfo) {
-    await db.upsert('user', {
+    await db.upsert('User', {
       id:           userInfo.sub,
       userName:     userInfo.userName,
       userMail:     userInfo.userMail,

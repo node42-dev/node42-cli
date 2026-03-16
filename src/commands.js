@@ -317,7 +317,7 @@ export function registerCommands(program) {
         });
 
         try { 
-            validateEnv(options.env);
+            context.options.env = validateEnv(options.env);
             validateId('participant', participantId);
 
             await runDiscovery(context); 

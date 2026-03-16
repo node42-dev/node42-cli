@@ -1,6 +1,6 @@
 {
   "name": "@n42/cli",
-  "version": "0.5.29",
+  "version": "0.5.32",
   "description": "Node42 CLI — command-line interface for end-to-end Peppol eDelivery, diagnostics and tooling",
   "keywords": [
     "node42",
@@ -60,7 +60,8 @@
     }
   },
   "dependencies": {
-    "@n42/edelivery": "^0.1.85",
+    "@n42/cli": "^0.5.30",
+    "@n42/edelivery": "^0.1.91",
     "commander": "^11.1.0",
     "dotenv": "^17.3.1",
     "inquirer": "^8.2.7",
