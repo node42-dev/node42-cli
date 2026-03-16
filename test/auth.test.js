@@ -4,7 +4,7 @@ import fs     from 'fs';
 import path   from 'path';
 import os     from 'os';
 import esmock from 'esmock';
-import { createJsonFileAdapter } from '../src/db/adapters/cli.json.db.js';
+import { createCliJsonFileAdapter } from '../src/db/adapters/cli.json.db.js';
 import { createDb }              from '../src/db/db.js';
 
 const TEST_DB = path.join(os.tmpdir(), 'n42-auth-test-db.json');
@@ -16,7 +16,7 @@ describe('auth', () => {
 
     beforeEach(() => {
       if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
-      db = createDb(createJsonFileAdapter(TEST_DB));
+      db = createDb(createCliJsonFileAdapter(TEST_DB));
     });
 
     afterEach(() => {

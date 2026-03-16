@@ -9,8 +9,8 @@
 
 import { getDbFile } from '../cli/paths.js';
 
-import { createJsonFileAdapter } from './adapters/cli.json.db.js';
-import { createDynamoDbAdapter } from './adapters/cli.dynamo.db.js';
+import { createCliJsonFileAdapter } from './adapters/cli.json.db.js';
+import { createCliDynamoDbAdapter } from './adapters/cli.dynamo.db.js';
 
 import { 
   N42Error, 
@@ -19,11 +19,11 @@ import {
 
 
 function createDefaultAdapter() {
-  return createJsonFileAdapter(getDbFile());
+  return createCliJsonFileAdapter(getDbFile());
 }
 
 export async function getDbAdapter() {
-  const procEnvDb = process.env.N42_DB_TABLE;
+  const procEnvDb = process.env.N42_DB_ADAPTER;
   switch(procEnvDb) {
     case 'cli-aws-dynamo-db': {
       let DynamoDBClient, DynamoDBDocumentClient, fromIni;
@@ -45,7 +45,7 @@ export async function getDbAdapter() {
             credentials: fromIni({ profile: process.env.AWS_PROFILE }),
           }),
         });
-        return createDynamoDbAdapter(DynamoDBDocumentClient.from(client), process.env.N42_DB_TABLE);
+        return createCliDynamoDbAdapter(DynamoDBDocumentClient.from(client), process.env.N42_DB_TABLE_CLI);
       }
       catch {
         return createDefaultAdapter();
@@ -53,7 +53,7 @@ export async function getDbAdapter() {
     }
 
     case 'cli-json-db': {
-      return createJsonFileAdapter(getDbFile());
+      return createCliJsonFileAdapter(getDbFile());
     }
     
     default: {

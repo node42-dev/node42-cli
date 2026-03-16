@@ -14,10 +14,10 @@ import {
 } from '../../core/error.js';
 
 /**
- * DynamoDB adapter for the n42 db layer.
+ * DynamoDB adapter for the Node42 CLI.
  *
  * Table schema:
- *   PK (String) — partition key, collection name (e.g. 'user', 'discovery', 'artefact')
+ *   PK (String) — partition key, collection name (e.g. 'User', 'Discovery', 'Transactions')
  *   SK (String) — sort key, item id
  *
  * GSI1 — index for artefactsByParticipant queries
@@ -26,9 +26,7 @@ import {
  *   Items must have both GSI1PK and GSI1SK set to appear in the index.
  *   These are set automatically by insert/upsert/update/replace when item.participantId is present.
  */
-
-// TODO: Remove once confirmed working. <a1exnd3r 2026-03-08 d:2026-05-08 p:1>
-export async function createDynamoDbAdapter(client, tableName) {
+export async function createCliDynamoDbAdapter(client, tableName) {
   let commands;
   try { commands = await import('@aws-sdk/lib-dynamodb'); } 
   catch {
@@ -119,26 +117,6 @@ export async function createDynamoDbAdapter(client, tableName) {
     ));
   }
   
-  async function getOne(collection, key, value) {
-    const result = await send(new GetCommand({
-      TableName: collection,
-      Key: {
-        PK: key,
-        SK: value
-      }
-    }));
-    
-    if (!result.Item) {
-      throw new N42Error(
-        N42ErrorCode.STORAGE_ITEM_NOT_FOUND,
-        { details: `Item not found: ${key}=${value}` },
-        { retryable: false }
-      );
-    }
-  
-    return result.Item;
-  }
-
   async function getAll(collection) {
     const result = await send(new QueryCommand({
       TableName:              tableName,
@@ -172,7 +150,6 @@ export async function createDynamoDbAdapter(client, tableName) {
     remove,
     clear,
     getAll,
-    getOne,
     find,
     artefactsByParticipant,
   };

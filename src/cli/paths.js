@@ -132,7 +132,7 @@ export async function cleanAppDirs(options) {
 
    const discoveryDir = getUserDiscoveryDir();
   if (all || discoveries) {
-    try { db.clear('discovery'); } catch { /* ignore */ }
+    try { db.clear('Discovery'); } catch { /* ignore */ }
     if (fs.existsSync(discoveryDir)) {
       fs.rmSync(discoveryDir, { recursive: true, force: true });
       fs.mkdirSync(discoveryDir, { recursive: true });
@@ -142,7 +142,7 @@ export async function cleanAppDirs(options) {
 
   const transactionsDir = getUserTransactionsDir();
   if (all || transactions) {
-    try { db.clear('transactions'); } catch { /* ignore */ }
+    try { db.clear('Transactions'); } catch { /* ignore */ }
     if (fs.existsSync(transactionsDir)) {
       fs.rmSync(transactionsDir, { recursive: true, force: true });
       fs.mkdirSync(transactionsDir, { recursive: true });
@@ -152,7 +152,7 @@ export async function cleanAppDirs(options) {
 
   const validationsDir = getUserValidationsDir();
   if (all || validations) {
-    try { db.clear('validations'); } catch { /* ignore */ }
+    try { db.clear('Validations'); } catch { /* ignore */ }
     if (fs.existsSync(validationsDir)) {
       fs.rmSync(validationsDir, { recursive: true, force: true });
       fs.mkdirSync(validationsDir, { recursive: true });
@@ -163,9 +163,9 @@ export async function cleanAppDirs(options) {
   const artefactsDir = getUserArtefactsDir();
   if (all || artefacts) {
     try { 
-      db.clear('discovery');
-      db.clear('transactions');
-      db.clear('validations'); 
+      db.clear('Discovery');
+      db.clear('Transactions');
+      db.clear('Validations'); 
     } catch { /* ignore */ }
     if (fs.existsSync(artefactsDir)) {
       fs.rmSync(artefactsDir, { recursive: true, force: true });
