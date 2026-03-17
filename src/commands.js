@@ -9,7 +9,7 @@
 import fs   from 'fs';
 import path from 'path';
 
-import { N42Timer }          from './cli/timer.js';
+//import { N42Timer }          from './cli/timer.js';
 import { N42Context }        from './model/context.js';
 import { N42Environment }    from './model/environment.js';
 import { runDiscovery }   from './discover.js';
@@ -66,7 +66,7 @@ async function getDb() {
 }
 
 const runtimeEnv = new N42Environment();
-const timer = new N42Timer();
+//const timer = new N42Timer();
 
 /**
  * Register CLI commands on the commander program instance.

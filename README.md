@@ -91,7 +91,7 @@ Node42 stores runtime data, generated artefacts, certificates, and configuration
       ├── reports/              # edelivery
       ├── config.json
       ├── db.json
-      ├── replay.txt            # edelivery
+      ├── replay.json           # edelivery
       ├── tokens.json
       └── env.test # or .env.prod
 ```
@@ -179,7 +179,9 @@ Invalid token: the authorization token provided is invalid
 
 ## License
 
-AGPL-3.0-only
+Available under **GPL-3.0-only** for open source use. \
+Commercial licenses available for proprietary and enterprise deployments. \
+Contact [support@node42.dev](mailto:support@node42.dev) for details.
 
 ## Author
 
