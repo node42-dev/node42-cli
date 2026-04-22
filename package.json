@@ -1,6 +1,6 @@
 {
   "name": "@n42/cli",
-  "version": "0.5.35",
+  "version": "0.5.38",
   "description": "Node42 CLI — command-line interface for end-to-end Peppol eDelivery, diagnostics and tooling",
   "keywords": [
     "node42",

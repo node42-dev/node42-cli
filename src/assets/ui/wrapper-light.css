@@ -234,6 +234,10 @@ body {
     color: #1f7fe5;
 }
 
+.bubble-info-icon.check_circle {
+    color: #22c55e;
+}
+
 .bubble-info-header {
     font-weight: 600;
     margin-bottom: 2px;
@@ -254,4 +258,9 @@ body {
     color: var(--brand-active);
     font-weight: 600;
     text-decoration: none;
+}
+
+.highlight {
+    /*text-decoration: underline;*/
+    font-weight: 600;
 }

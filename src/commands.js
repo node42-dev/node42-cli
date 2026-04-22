@@ -168,11 +168,13 @@ export function registerCommands(program) {
     Discovery    : ${c(C.RED, user.rateLimits.discovery)}
     Transactions : ${c(C.RED, user.rateLimits.transactions)}
     Validation   : ${c(C.RED, user.rateLimits.validation)}
+    Analysis     : ${c(C.RED, user.rateLimits.analysis)}
 
     ${c(C.BOLD, 'Usage')} ${c(C.DIM, '(Current Month')}
     Discovery    : ${c(C.RED, user.serviceUsage.discovery[currentMonth] ?? 0)}
     Transactions : ${c(C.RED, user.serviceUsage.transactions[currentMonth] ?? 0)}
     Validation   : ${c(C.RED, user.serviceUsage.validation[currentMonth] ?? 0)}
+    Analysis     : ${c(C.RED, user.serviceUsage.analysis[currentMonth] ?? 0)}
         `);
         }
         catch(e) {
@@ -186,12 +188,23 @@ export function registerCommands(program) {
     .description('Returns service usage for the authenticated user.')
     .option('-m, --month <yyyy-mm>', 'Show usage for a specific month')
     .action(async (service, options) => {
-        const user         = await getUserWithIndex(0);
-        const currentMonth = options.month ?? new Date().toISOString().slice(0, 7);
-        const usage        = await getUserUsage(user.id, service, currentMonth) ?? 0;
+        const services = [ "discovery", "validation", "transactions", "analysis" ];
 
-        console.log(`${c(C.BOLD, capitalize(service))} usage`);
-        console.log(` • ${currentMonth}: ${c(C.RED, usage)}\n`);
+        try {
+            if (!services.includes(service)) {
+                throw new N42Error(N42ErrorCode.INVALID_INPUT, { details: `Supported services: ${services.join(", ")}` });
+            }
+
+            const user         = await getUserWithIndex(0);
+            const currentMonth = options.month ?? new Date().toISOString().slice(0, 7);
+            const usage        = await getUserUsage(user.id, service, currentMonth) ?? 0;
+
+            console.log(`${c(C.BOLD, capitalize(service))} usage`);
+            console.log(` • ${currentMonth}: ${c(C.RED, usage)}\n`);
+        }
+        catch(e) {
+            handleError(e);
+        }
     });
 
     program
